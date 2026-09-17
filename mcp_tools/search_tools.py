@@ -1,5 +1,6 @@
-import urllib.request
 import json
+import urllib.request
+
 
 def api_lookup(endpoint: str) -> str:
     """Performs a simple GET request to a public API endpoint."""
