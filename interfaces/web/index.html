@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>OmniAssist</title>
+<link rel="stylesheet" href="/static/styles.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🛰️</text></svg>" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark">OA</span>
+        <div>
+          <h1>OmniAssist</h1>
+          <p class="version" id="version">loading…</p>
+        </div>
+      </div>
+
+      <button class="new-chat" id="new-chat">+ New conversation</button>
+
+      <h2 class="section-label">Conversations</h2>
+      <div class="session-list" id="session-list"></div>
+
+      <div class="sidebar-footer">
+        <div class="status-row">
+          <span class="dot" id="status-dot"></span>
+          <span id="status-text">connecting…</span>
+        </div>
+        <div class="status-row muted"><span id="model-text">—</span></div>
+      </div>
+    </aside>
+
+    <main class="chat">
+      <header class="chat-header">
+        <div>
+          <h2 id="chat-title">New conversation</h2>
+          <p class="muted" id="chat-sub">Autonomous multi-agent execution</p>
+        </div>
+        <div class="header-actions">
+          <button class="ghost" id="toggle-tools">Tools</button>
+          <button class="ghost" id="toggle-trace">Trace</button>
+        </div>
+      </header>
+
+      <div class="messages" id="messages">
+        <div class="empty" id="empty">
+          <h3>Ask OmniAssist to do something</h3>
+          <p>It plans, calls tools, and iterates until the task is done.</p>
+          <div class="suggestions">
+            <button class="suggestion" data-prompt="Calculate 12 * (7 + 5) with basic_calculate and explain the result.">Run a calculation</button>
+            <button class="suggestion" data-prompt="Search the web for the latest Python release and summarize it.">Search the web</button>
+            <button class="suggestion" data-prompt="List the files in the current directory and tell me what this project does.">Inspect this project</button>
+          </div>
+        </div>
+      </div>
+
+      <form class="composer" id="composer">
+        <textarea id="input" rows="1" placeholder="Message OmniAssist…  (Enter to send, Shift+Enter for newline)"></textarea>
+        <button type="submit" id="send" title="Send">Send</button>
+      </form>
+    </main>
+
+    <aside class="inspector" id="inspector">
+      <div class="tabs">
+        <button class="tab active" data-tab="trace">Trace</button>
+        <button class="tab" data-tab="tools">Tools</button>
+      </div>
+      <section class="tab-panel active" data-panel="trace">
+        <div class="trace" id="trace"></div>
+      </section>
+      <section class="tab-panel" data-panel="tools">
+        <div class="tools" id="tools"></div>
+      </section>
+    </aside>
+  </div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

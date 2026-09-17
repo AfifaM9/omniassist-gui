@@ -1,47 +1,102 @@
+"""OmniAssist primary agent: lifecycle, reasoning loop, and tool execution.
+
+The agent drives a real multi-step loop. Each iteration asks the model for the
+next action; if the model requests tool calls they are executed and their
+results are appended to the conversation so the model can observe them and
+decide what to do next. The loop ends when the model replies with plain text or
+when ``max_iterations`` is reached.
+"""
+
 import os
+
 import yaml
-from google import genai
-from google.genai import types
-from core.state import ConversationState
+
 from core.reasoning import CognitiveEngine
-from core.selfmodify import SelfModifier
 from core.router import TaskRouter
+from core.selfmodify import SelfModifier
+from core.state import ConversationState
 from mcp_tools.registry import MCPToolRegistry
 
 try:
     from dotenv import load_dotenv
-    load_dotenv(override=True)
-except ImportError:
+
+    load_dotenv(override=False)
+except ImportError:  # pragma: no cover - dotenv is optional at runtime
     pass
+
+DEFAULT_MODEL = "gemini-3.5-flash-lite"
+
+
+class OfflineClient:
+    """Deterministic stand-in for the GenAI client used when no API key is set.
+
+    It lets the CLI, the web UI, and the test suite run end-to-end without
+    credentials. It is never used when a real API key is configured.
+    """
+
+    class _Models:
+        def generate_content(self, model, contents, config):
+            return OfflineResponse(contents)
+
+    def __init__(self):
+        self.models = self._Models()
+
+
+class OfflineResponse:
+    def __init__(self, contents):
+        self.function_calls = None
+        prompt = contents if isinstance(contents, str) else str(contents)
+        self.text = (
+            "Offline mode: no GEMINI_API_KEY is configured, so no model was called.\n\n"
+            f"Received prompt: {prompt[:400]}"
+        )
+
 
 class OmniAssist:
     """Main OmniAssist primary agent class coordinating lifecycle, reasoning, and tools."""
-    def __init__(self):
+
+    def __init__(self, api_key: str | None = None, model_id: str | None = None):
         self.state = ConversationState()
         self.reasoning = CognitiveEngine()
         self.self_modifier = SelfModifier()
         self.tool_registry = MCPToolRegistry()
         self.router = TaskRouter(self.tool_registry)
-        
-        self.model_id = "gemini-3.5-flash-lite"
+
+        self.max_iterations = 10
+        self.temperature = 0.2
+        self.model_id = model_id or DEFAULT_MODEL
         self.fallback_models = []
+        self._load_config(model_id)
+
+        self.api_key = api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+        self.offline = not self.api_key
+        if self.offline:
+            self.client = OfflineClient()
+        else:
+            from google import genai
+
+            os.environ.setdefault("GEMINI_API_KEY", self.api_key)
+            os.environ.setdefault("GOOGLE_API_KEY", self.api_key)
+            self.client = genai.Client(api_key=self.api_key)
+
+    def _load_config(self, model_id: str | None):
+        config_path = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "config", "config.yml"
+        )
+        if not os.path.exists(config_path):
+            return
         try:
-            config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "config.yml")
-            if os.path.exists(config_path):
-                with open(config_path, "r", encoding="utf-8") as f:
-                    config_data = yaml.safe_load(f)
-                    self.model_id = config_data.get("models", {}).get("primary", "gemini-3.5-flash-lite")
-                    self.fallback_models = config_data.get("models", {}).get("fallbacks", []) or []
-        except Exception:
-            pass
-
-        api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
-        if not api_key:
-            raise ValueError("No API key found in environment.")
-
-        os.environ["GEMINI_API_KEY"] = api_key
-        os.environ["GOOGLE_API_KEY"] = api_key
-        self.client = genai.Client(api_key=api_key)
+            with open(config_path, "r", encoding="utf-8") as f:
+                config_data = yaml.safe_load(f) or {}
+        except Exception:  # noqa: BLE001 - a broken config must not block startup
+            return
+        models = config_data.get("models", {}) or {}
+        if not model_id:
+            self.model_id = models.get("primary", self.model_id)
+        self.fallback_models = [m for m in (models.get("fallbacks") or []) if m]
+        agent_cfg = config_data.get("agent", {}) or {}
+        self.max_iterations = int(agent_cfg.get("max_iterations", self.max_iterations))
+        self.temperature = float(agent_cfg.get("temperature", self.temperature))
 
     def _build_system_prompt(self, plan: str) -> str:
         """Generates an explicit system prompt directing multi-step autonomous behavior."""
@@ -57,61 +112,147 @@ class OmniAssist:
 {plan}
 """
 
-    def _generate(self, prompt: str, config) -> tuple:
+    def _model_chain(self) -> list[str]:
+        return [self.model_id] + [m for m in self.fallback_models if m and m != self.model_id]
+
+    def _build_config(self, plan: str):
+        """Builds the SDK config object, including tool declarations."""
+        if self.offline:
+            return None
+        from google.genai import types
+
+        kwargs = {
+            "system_instruction": self._build_system_prompt(plan),
+            "temperature": self.temperature,
+        }
+        declarations = self.router.tool_declarations()
+        if declarations:
+            kwargs["tools"] = declarations
+        return types.GenerateContentConfig(**kwargs)
+
+    def _generate(self, contents, config) -> tuple:
         """Try each model in the priority chain until one succeeds."""
-        models = [self.model_id] + [m for m in self.fallback_models if m and m != self.model_id]
         errors = []
-        for model in models:
+        for model in self._model_chain():
             try:
                 response = self.client.models.generate_content(
-                    model=model,
-                    contents=prompt,
-                    config=config
+                    model=model, contents=contents, config=config
                 )
                 return model, response
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - fall through the chain
                 errors.append(f"{model}: {e}")
         raise RuntimeError("; ".join(errors))
 
+    def _plan(self, prompt: str) -> str:
+        return self.reasoning.evaluate_plan(prompt)
+
+    def _initial_contents(self, prompt: str):
+        """Builds the opening user turn in the shape the SDK expects."""
+        if self.offline:
+            return prompt
+        from google.genai import types
+
+        return [types.Content(role="user", parts=[types.Part(text=prompt)])]
+
+    def _append_tool_turn(self, contents, calls, observations):
+        """Appends the model's tool calls and the tool responses to the transcript.
+
+        Gemini expects tool output as ``function_response`` parts on a ``user``
+        turn, not as flattened prose. Sending it as prose makes the model
+        re-issue the same call until the iteration cap is hit.
+        """
+        if self.offline:
+            return contents
+        from google.genai import types
+
+        model_parts = [
+            types.Part(
+                function_call=types.FunctionCall(name=call.name, args=dict(call.args or {}))
+            )
+            for call in calls
+        ]
+        response_parts = [
+            types.Part(
+                function_response=types.FunctionResponse(
+                    name=call.name,
+                    response={"result": result},
+                )
+            )
+            for call, result in observations
+        ]
+        return [
+            *contents,
+            types.Content(role="model", parts=model_parts),
+            types.Content(role="user", parts=response_parts),
+        ]
+
     def run(self, prompt: str) -> str:
-        """Executes agent execution loop safely catching internal tool registration issues."""
+        """Runs the full agent loop and returns the final assistant text."""
+        text = ""
+        for event in self.run_stream(prompt):
+            if event.type in ("final", "error"):
+                text = event.content
+        return text
+
+    def run_stream(self, prompt: str):
+        """Generator yielding agent events.
+
+        Event types: ``plan``, ``tool_call``, ``tool_result``, ``final``, ``error``.
+        Consuming this generator is what actually advances the agent loop.
+        """
+        from core.events import AgentEvent
+
         self.state.add_message("user", prompt)
-        
-        plan = self.reasoning.evaluate_plan(prompt)
-        system_prompt = self._build_system_prompt(plan)
-#f"You are OmniAssist, an advanced AI operational agent. Context plan: {plan}."
+        plan = self._plan(prompt)
+        yield AgentEvent("plan", plan)
 
         try:
-            # Safely filter tools to only include true Python callables, entirely avoiding DDGS class attribute bugs
-            tools_list = []
-            raw_tools = getattr(self.tool_registry, "tools", [])
-            if isinstance(raw_tools, dict):
-                raw_tools = list(raw_tools.values())
-            
-            for t in raw_tools:
-                if callable(t) and not isinstance(t, type):
-                    tools_list.append(t)
+            config = self._build_config(plan)
+        except Exception as e:  # noqa: BLE001
+            yield AgentEvent("error", f"Agent Runtime Exception Handled: {e}")
+            return
 
-            config_kwargs = {"system_instruction": system_prompt}
-            if tools_list:
-                config_kwargs["tools"] = tools_list
+        contents = self._initial_contents(prompt)
+        max_iterations = max(1, self.max_iterations)
+        for iteration in range(max_iterations):
+            turn = contents
+            if iteration == max_iterations - 1 and not self.offline:
+                # Final iteration: ask for prose so the run always terminates.
+                from google.genai import types
 
-            config = types.GenerateContentConfig(**config_kwargs)
+                turn = [
+                    *contents,
+                    types.Content(
+                        role="user",
+                        parts=[types.Part(text=(
+                            "This is your final step. Do not call any more tools. "
+                            "Summarize what you found and answer the user now."
+                        ))],
+                    ),
+                ]
+            try:
+                _model_used, response = self._generate(turn, config)
+            except Exception as e:  # noqa: BLE001 - surface, never crash the UI
+                yield AgentEvent("error", f"Agent Runtime Exception Handled: {e}")
+                return
 
-            _model_used, response = self._generate(prompt, config)
+            calls = getattr(response, "function_calls", None) or []
+            if not calls:
+                text = getattr(response, "text", None) or "Execution completed."
+                self.state.add_message("assistant", text)
+                yield AgentEvent("final", text)
+                return
 
-            if hasattr(response, "function_calls") and response.function_calls:
-                results = []
-                for call in response.function_calls:
-                    res = self.router.execute(call.name, call.args or {}) if hasattr(self.router, "execute") else f"Executed {call.name}"
-                    results.append(str(res))
-                output_text = "\n".join(results)
-            else:
-                output_text = response.text or "Execution completed."
+            observations = []
+            for call in calls:
+                args = dict(call.args or {})
+                yield AgentEvent("tool_call", f"{call.name}({args})", tool=call.name, args=args)
+                result = self.router.execute(call.name, args)
+                yield AgentEvent("tool_result", result, tool=call.name)
+                observations.append((call, result))
 
-        except Exception as e:
-            # Catch exceptions cleanly as return strings so the CLI loop never crashes and You: always stays up
-            output_text = f"Agent Runtime Exception Handled: {e}"
+            contents = self._append_tool_turn(contents, calls, observations)
 
-        self.state.add_message("assistant", output_text)
-        return output_text
+        message = "Reached the maximum number of iterations before completing the task."
+        self.state.add_message("assistant", message)
+        yield AgentEvent("final", message)

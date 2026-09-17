@@ -45,6 +45,12 @@ def main():
         console.print(f"[bold red]Initialization Error:[/bold red] {e}")
         sys.exit(1)
 
+    if agent.offline:
+        console.print(
+            "[yellow]Offline mode:[/yellow] no GEMINI_API_KEY found, so replies are "
+            "simulated. Set the key in .env to use a real model.\n"
+        )
+
     while True:
         try:
             user_input = console.input("[bold green]You:[/bold green] ").strip()
@@ -65,7 +71,16 @@ def main():
                     console.print(f"[yellow]Unknown command: /{command}. Type '/help' for available commands.[/yellow]\n")
                     continue
             
-            response = agent.run(user_input)
+            response = ""
+            for event in agent.run_stream(user_input):
+                if event.type == "plan":
+                    console.print(f"[dim]{event.content}[/dim]")
+                elif event.type == "tool_call":
+                    console.print(f"[magenta]=> {event.content}[/magenta]")
+                elif event.type == "tool_result":
+                    console.print(f"[dim]   <- {event.content[:300]}[/dim]")
+                elif event.type in ("final", "error"):
+                    response = event.content
             
             # Restored full Rich Markdown panel rendering for agent outputs
             console.print(Panel(

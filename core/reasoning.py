@@ -1,5 +1,6 @@
 class CognitiveEngine:
     """Implements cognitive strategies like ReAct loops, Plan-and-Solve, and Self-Reflection."""
+
     def __init__(self):
         self.strategy = "ReAct"
 
