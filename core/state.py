@@ -8,3 +8,6 @@ class ConversationState:
 
     def get_history(self):
         return self.history
+
+    def clear(self):
+        self.history.clear()

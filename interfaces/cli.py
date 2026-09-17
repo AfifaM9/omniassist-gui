@@ -1,10 +1,12 @@
-import sys
 import re
-import readline
+import readline  # noqa: F401  # side-effect import; enables arrow-key input history
+import sys
+
 from rich.console import Console
-from rich.panel import Panel
 from rich.markdown import Markdown
+from rich.panel import Panel
 from rich.table import Table
+
 from core.agent import OmniAssist
 
 console = Console()
@@ -19,13 +21,13 @@ def show_help():
         "[italic]Type a slash command or chat normally with the agent.[/italic]",
         border_style="cyan"
     ))
-    
+
     table = Table(show_header=True, header_style="bold magenta")
     table.add_column("Command", style="cyan", width=15)
     table.add_column("Description")
-    
+
     table.add_row("/help", "Show this help message")
-    
+
     console.print(table)
     console.print()
 
@@ -38,12 +40,18 @@ def main():
         border_style="cyan"
     ))
     console.print("[dim]Type '/help' for commands or 'exit', 'quit', 'q' to terminate session.[/dim]\n")
-    
+
     try:
         agent = OmniAssist()
     except Exception as e:
         console.print(f"[bold red]Initialization Error:[/bold red] {e}")
         sys.exit(1)
+
+    if agent.offline:
+        console.print(
+            "[yellow]Offline mode:[/yellow] no GEMINI_API_KEY found, so replies are "
+            "simulated. Set the key in .env to use a real model.\n"
+        )
 
     while True:
         try:
@@ -53,7 +61,7 @@ def main():
             if QUIT_PATTERN.match(user_input):
                 console.print("[yellow]Exiting OmniAssist CLI. Goodbye![/yellow]")
                 break
-            
+
             # Check for slash commands
             slash_match = SLASH_COMMAND_PATTERN.match(user_input)
             if slash_match:
@@ -64,9 +72,18 @@ def main():
                 else:
                     console.print(f"[yellow]Unknown command: /{command}. Type '/help' for available commands.[/yellow]\n")
                     continue
-            
-            response = agent.run(user_input)
-            
+
+            response = ""
+            for event in agent.run_stream(user_input):
+                if event.type == "plan":
+                    console.print(f"[dim]{event.content}[/dim]")
+                elif event.type == "tool_call":
+                    console.print(f"[magenta]=> {event.content}[/magenta]")
+                elif event.type == "tool_result":
+                    console.print(f"[dim]   <- {event.content[:300]}[/dim]")
+                elif event.type in ("final", "error"):
+                    response = event.content
+
             # Restored full Rich Markdown panel rendering for agent outputs
             console.print(Panel(
                 Markdown(str(response)),
@@ -75,7 +92,7 @@ def main():
                 expand=False
             ))
             console.print()
-            
+
         except (KeyboardInterrupt, EOFError):
             console.print("\n[yellow]Session interrupted. Type '/help' for commands or 'exit', 'quit', 'q' to quit properly.[/yellow]")
             continue
