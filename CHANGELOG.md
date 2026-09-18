@@ -7,7 +7,7 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 
 ## [v2026.4] - 2026-09-17
 
-_Initial release. Version numbers 2026.1–2026.3 were skipped so the project version aligns with the CLI release 2026.4 "Biscotti"._
+*Initial release. Version numbers 2026.1–2026.3 were skipped so the project version aligns with its sister repository: [OmniAssist](http://github.com/AfifaM9/omniassist), version 2026.4 "Biscotti".*
 
 ### Added
 - Added a browser web UI (`interfaces/web/`) served directly by the API server — a single-page app with no build step. Includes streaming chat replies, a session sidebar, a live agent execution trace, and a tools inspector.
