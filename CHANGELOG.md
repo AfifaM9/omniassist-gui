@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 and this project adheres to [Calendar Versioning](https://calver.org/).
 
+## [v2026.4-post] - 2026-09-18
+
+*Post release "Biscotti Post 1".*
+
+### Changed
+- Renamed the project to **OmniAssist GUI** across all documentation, and expanded the full name to *Operationalized Multi-Agent Networked Intelligence & Autonomous System Services Integration Toolkit Graphical User Interface*.
+- Documented that the browser UI runs at `127.0.0.1:8000` (localhost) or `0.0.0.0:8000` (all interfaces).
+
 ## [v2026.4] - 2026-09-17
 
 *Initial release. Version numbers 2026.1–2026.3 were skipped so the project version aligns with its sister repository: [OmniAssist](http://github.com/AfifaM9/omniassist), version 2026.4 "Biscotti".*

@@ -1,5 +1,5 @@
 # Security Policy & Vulnerability Disclosure Framework 🛡️
-OmniAssist operates as an autonomous operational agent framework interacting directly with local system resources, sensitive APIs, and execution environments. Because of its deep system integration and tool-calling capabilities, maintaining a robust, transparent, and rigorous security posture is paramount. 
+OmniAssist GUI operates as an autonomous operational agent framework interacting directly with local system resources, sensitive APIs, and execution environments. Because of its deep system integration and tool-calling capabilities, maintaining a robust, transparent, and rigorous security posture is paramount. 
 This document outlines our complete vulnerability reporting guidelines, threat models, architectural security boundaries, and the explicit **whys** behind every defensive measure implemented within the framework.
 ---
 ## Table of Contents
@@ -30,7 +30,7 @@ Only the latest stable release and the current active development branch (`main`
   - **Status Update / Triage:** Within 5 business days.
 ---
 ## Core Threat Model & Architecture Security (The Whys)
-OmniAssist executes code, interacts with filesystems, and interfaces with external network APIs. Below are the foundational security controls and the explicit architectural reasons (**the whys**) behind them.
+OmniAssist GUI executes code, interacts with filesystems, and interfaces with external network APIs. Below are the foundational security controls and the explicit architectural reasons (**the whys**) behind them.
 ### 1. Separation of Environment Variables (`.env` vs `.env.example`)
 - **Control:** All secrets (`GEMINI_API_KEY`, custom ports, internal tokens) reside strictly in `.env`, which is ignored by git, while `.env.example` contains only non-sensitive placeholder keys.
 - **Why:** Committing production secrets to version control creates permanent historical leaks in git logs, allowing anyone with repository read-access to compromise cloud resources, rack up unauthorized API billing, or pivot into private infrastructure.
@@ -45,7 +45,7 @@ OmniAssist executes code, interacts with filesystems, and interfaces with extern
 - **Why:** Prevents accidental pollution of the repository with ephemeral local state, bloated virtual environment binaries, and sensitive SQLite session logs that could leak historical conversation context.
 ---
 ## Secure Coding & Operational Best Practices
-When extending OmniAssist or writing custom MCP tools (`mcp_tools/`), developers must adhere to these mandatory security guidelines:
+When extending OmniAssist GUI or writing custom MCP tools (`mcp_tools/`), developers must adhere to these mandatory security guidelines:
 1. **Input Sanitization:** Never pass raw, unvalidated string inputs from user prompts or LLM generation directly into shell execution functions or SQL queries.
 2. **Credential Handling:** Always retrieve API keys and secrets via environment variable calls (e.g., `os.getenv("GEMINI_API_KEY")`) rather than hardcoding values into script logic.
 3. **Error Suppression:** Ensure production error handlers do not leak full stack traces, local file paths, or internal memory contents back to the user interface, as this aids reconnaissance phases during attacks.

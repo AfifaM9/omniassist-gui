@@ -1,6 +1,6 @@
-# Contributing to OmniAssist
+# Contributing to OmniAssist GUI
 
-Thank you for your interest in contributing to OmniAssist! Whether it's bug reporting, submitting feature requests, or contributing code, your help is appreciated.
+Thank you for your interest in contributing to OmniAssist GUI! Whether it's bug reporting, submitting feature requests, or contributing code, your help is appreciated.
 
 ## Code of Conduct
 By participating, you agree to abide by our community standards. Be respectful, constructive, and collaborative.

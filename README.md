@@ -1,12 +1,12 @@
-# OmniAssist 🚀
+# OmniAssist GUI 🚀
 
 ![CI](https://github.com/AfifaM9/omniassist-gui/actions/workflows/ci.yml/badge.svg)
 ![Lint](https://github.com/AfifaM9/omniassist-gui/actions/workflows/lint.yml/badge.svg)
 ![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Version](https://img.shields.io/badge/version-2026.4-blue)
+![Version](https://img.shields.io/badge/version-2026.4--post-blue)
 
-Operationalized Multi-Agent Networked Intelligence & Autonomous System Services Integration Toolkit (2026.4 "Biscotti")
+Operationalized Multi-Agent Networked Intelligence & Autonomous System Services Integration Toolkit Graphical User Interface (2026.4-post "Biscotti Post 1")
 
 ---
 
@@ -28,7 +28,7 @@ Operationalized Multi-Agent Networked Intelligence & Autonomous System Services 
 
 ## Overview
 
-**OmniAssist** is a lightweight, modular, and extensible AI operational agent framework designed to bridge the gap between large language models and local machine execution. By combining the power of the Google GenAI SDK, native function-calling capabilities, and a flexible Model Context Protocol (MCP) tool registry, OmniAssist operates directly within your terminal environment or in the browser as a fully autonomous assistant.
+**OmniAssist GUI** is a lightweight, modular, and extensible AI operational agent framework designed to bridge the gap between large language models and local machine execution. By combining the power of the Google GenAI SDK, native function-calling capabilities, and a flexible Model Context Protocol (MCP) tool registry, OmniAssist GUI operates directly within your terminal environment or in the browser as a fully autonomous assistant.
 
 The agent runs a real multi-step loop: it plans, calls tools, observes the results, and keeps iterating until the task is done. Two front-ends are included — an interactive terminal interface built on Rich, and a browser UI with a live execution trace.
 
@@ -73,7 +73,7 @@ omniassist
 │   └── config.yml           # Unified YAML configuration file for models, paths, and options
 ├── core/                    # Core agent orchestrator & execution loop
 │   ├── __init__.py
-│   ├── agent.py             # Main OmniAssist class (lifecycle, multi-step agent loop)
+│   ├── agent.py             # Main OmniAssist GUI agent class (lifecycle, multi-step agent loop)
 │   ├── events.py            # AgentEvent objects streamed to the CLI and Web UI
 │   ├── reasoning.py         # Cognitive engine (ReAct, Plan-and-Solve, Self-Reflection)
 │   ├── router.py            # Tool declarations + execution bridge to the registry
@@ -88,7 +88,7 @@ omniassist
 │   │   ├── index.html       # Chat shell, session sidebar, inspector panel
 │   │   ├── styles.css       # Dark theme styling
 │   │   └── app.js           # Streaming client, trace rendering, session management
-│   └── cli.py               # Interactive terminal interface for OmniAssist
+│   └── cli.py               # Interactive terminal interface for OmniAssist GUI
 ├── memory/                  # Multi-tiered memory architecture
 │   ├── conversation.py      # Working memory & short-term message buffer
 │   ├── session.py           # Session persistence across agent reboots
@@ -104,7 +104,7 @@ omniassist
 │   ├── search_tools.py      # Search tools (web scraping, API access, knowledge search)
 │   ├── shell_tool.py        # Tool interface for executing system shell commands
 │   └── web_fetch.py         # Web content fetching and parsing
-├── subagents/               # Specialized sub-agents supervised by OmniAssist
+├── subagents/               # Specialized sub-agents supervised by OmniAssist GUI
 │   ├── base.py              # Abstract base class for specialized sub-agents
 │   ├── code_agent.py        # Code generation, execution, and debugging sub-agent
 │   ├── planner_agent.py     # Complex task breakdown & multi-step planning sub-agent
@@ -194,7 +194,7 @@ omniassist
 python main.py
 ```
 
-Once loaded, you can chat with OmniAssist or issue direct commands:
+Once loaded, you can chat with OmniAssist GUI or issue direct commands:
 - Type `/help` to see available slash commands.
 - Type `exit`, `quit`, or `q` to terminate the session (case insensitive).
 - Tool calls are printed inline (`=> tool(args)`) as the agent works.
@@ -203,7 +203,7 @@ Once loaded, you can chat with OmniAssist or issue direct commands:
 ```bash
 python main.py --web
 ```
-Then open <http://127.0.0.1:8000>.
+The browser UI runs at <http://127.0.0.1:8000> (localhost) or <http://0.0.0.0:8000> (all interfaces).
 
 ---
 
@@ -213,13 +213,14 @@ The web UI is a single-page app with no build step, served directly by the FastA
 
 **Starting the server:**
 ```bash
-python main.py --web --host 0.0.0.0 --port 12000
+python main.py --web --host 0.0.0.0 --port 8000
 ```
+This serves the browser UI at <http://0.0.0.0:8000> (or <http://127.0.0.1:8000> when bound to localhost).
 
 You can also configure it through the environment:
 ```env
 OMNIASSIST_HOST=0.0.0.0
-OMNIASSIST_PORT=12000
+OMNIASSIST_PORT=8000
 ```
 
 **Interface features:**
@@ -267,7 +268,7 @@ curl -s http://127.0.0.1:8000/api/run \
 
 ## Tool Ecosystem & MCP Integration
 
-OmniAssist discovers callable Python functions in `mcp_tools/` at startup. For each function it builds a `FunctionDeclaration` (name, docstring summary, parameters) and hands it to the model, so the model chooses which tools to call and with what arguments.
+OmniAssist GUI discovers callable Python functions in `mcp_tools/` at startup. For each function it builds a `FunctionDeclaration` (name, docstring summary, parameters) and hands it to the model, so the model chooses which tools to call and with what arguments.
 
 Discovery is fault-tolerant: if one tool module fails to import — for example because an optional dependency is missing — the module is reported in `GET /api/health` under `tool_load_errors` and every other tool still loads normally.
 
@@ -277,7 +278,7 @@ Only true module-level functions are registered; classes and imported names are 
 
 ## Security
 
-> **OmniAssist executes code on the host it runs on.** It is not sandboxed.
+> **OmniAssist GUI executes code on the host it runs on.** It is not sandboxed.
 
 `run_shell` executes commands with `shell=True`, `run_python` uses Python's `exec`, and `write_file` accepts arbitrary paths. These are deliberate design choices for a local automation tool, but they mean the Web UI must not be exposed to an untrusted network.
 
