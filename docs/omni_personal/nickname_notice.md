@@ -4,8 +4,8 @@ This document records the official nicknames used for the project.
 
 ## OmniAssist is nicknamed **Omni**
 
-The agent itself — the operational, multi-agent engine that plans, calls tools, and
-iterates until a task is done — is nicknamed **Omni**.
+The sister agent — the CLI operational, multi-agent engine that plans, calls tools, and
+iterates until a task is done — is nicknamed [**Omni**](https://github.com/AfifaM9/omniassist).
 
 ## OmniAssist GUI is nicknamed **GUI Omni**
 
