@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 and this project adheres to [Calendar Versioning](https://calver.org/).
 
+## [v2026.4-rename] - 2026-09-19
+
+*Nickname release "Rename 1".*
+
+### Added
+- Added `docs/omni_personal/nickname_notice.md`, documenting that **OmniAssist** is nicknamed **Omni** and **OmniAssist GUI** is nicknamed **GUI Omni**.
+
+### Changed
+- Renamed the web-UI inspector labels: the execution panel formerly labelled **Trace** is now **Omni's Computer**, and the tool panel formerly labelled **Tools** is now **Omni's MCP Toolbox**. Both the header toggles and the inspector tabs are updated.
+- Updated the README to document the new panel names, the nickname notice, and the `docs/omni_personal/` directory in the file tree.
+
 ## [v2026.4-post] - 2026-09-18
 
 *Post release "Biscotti Post 1".*
@@ -58,4 +69,5 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 - Documented that `mcp_tools/shell_tool.py` is a denylist and not a sandbox. It is bypassable via path traversal (`rm -rf /opt/../etc`), trailing slashes, unexpanded variables (`$HOME`), long flags (`--recursive --force`), command chaining, and `find / -delete`. The README and Security section now state this plainly rather than describing the tooling as sandboxed.
 - Added optional token auth to the web API, which exposes shell-executing tools over HTTP for the first time.
 
+[v2026.4-rename]: https://github.com/AfifaM9/omniassist-gui/tree/v2026.4-rename
 [v2026.4]: https://github.com/AfifaM9/omniassist/tree/v2026.4

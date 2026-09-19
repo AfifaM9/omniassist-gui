@@ -4,9 +4,9 @@
 ![Lint](https://github.com/AfifaM9/omniassist-gui/actions/workflows/lint.yml/badge.svg)
 ![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Version](https://img.shields.io/badge/version-2026.4--post-blue)
+![Version](https://img.shields.io/badge/version-2026.4--rename-blue)
 
-Operationalized Multi-Agent Networked Intelligence & Autonomous System Services Integration Toolkit Graphical User Interface (2026.4-post "Biscotti Post 1")
+Operationalized Multi-Agent Networked Intelligence & Autonomous System Services Integration Toolkit Graphical User Interface (2026.4-rename "Rename 1")
 
 ---
 
@@ -28,9 +28,9 @@ Operationalized Multi-Agent Networked Intelligence & Autonomous System Services 
 
 ## Overview
 
-**OmniAssist GUI** is a lightweight, modular, and extensible AI operational agent framework designed to bridge the gap between large language models and local machine execution. By combining the power of the Google GenAI SDK, native function-calling capabilities, and a flexible Model Context Protocol (MCP) tool registry, OmniAssist GUI operates directly within your terminal environment or in the browser as a fully autonomous assistant.
+**OmniAssist GUI** (nicknamed **GUI Omni**) is a lightweight, modular, and extensible AI operational agent framework designed to bridge the gap between large language models and local machine execution. By combining the power of the Google GenAI SDK, native function-calling capabilities, and a flexible Model Context Protocol (MCP) tool registry, OmniAssist GUI operates directly within your terminal environment or in the browser as a fully autonomous assistant. The underlying agent, **OmniAssist**, is nicknamed **Omni** — see [`docs/omni_personal/nickname_notice.md`](docs/omni_personal/nickname_notice.md).
 
-The agent runs a real multi-step loop: it plans, calls tools, observes the results, and keeps iterating until the task is done. Two front-ends are included — an interactive terminal interface built on Rich, and a browser UI with a live execution trace.
+The agent runs a real multi-step loop: it plans, calls tools, observes the results, and keeps iterating until the task is done. Two front-ends are included — an interactive terminal interface built on Rich, and a browser UI with a live execution feed in **Omni's Computer**.
 
 ---
 
@@ -38,7 +38,7 @@ The agent runs a real multi-step loop: it plans, calls tools, observes the resul
 
 - **Autonomous Tool Execution:** Dynamically interprets user intent, matches prompts against registered tools, and executes native Python or system commands.
 - **True Multi-Step Loop:** Tool results are fed back to the model as structured `function_response` turns, so the agent can chain calls, react to errors, and adapt before answering.
-- **Web UI with Live Trace:** Watch each planning step, tool call, and tool result stream into the browser over a WebSocket as it happens.
+- **Web UI with Omni's Computer:** Watch each planning step, tool call, and tool result stream into the browser over a WebSocket as it happens.
 - **Interactive CLI:** Powered by Python's `rich` and `readline` libraries to provide a fluid, uninterrupted input loop with arrow-key history and clean block rendering.
 - **Robust Error Handling:** Intercepts runtime exceptions, LLM formatting issues, and tool-registry mismatches gracefully to keep the session alive.
 - **Model Fallback Chain:** Tries the primary model first, then automatically steps down a configured list of fallbacks when a model is unavailable.
@@ -68,6 +68,10 @@ omniassist
 ├── CHANGELOG.md             # Version history and release notes
 ├── LICENSE.txt              # MIT License terms and copyright notice
 ├── README.md                # Project documentation, architecture overview, and setup guide
+├── ann_summary_report.md    # Annual summary report
+├── docs/                    # Project documentation
+│   └── omni_personal/       # Omni-specific notes and conventions
+│       └── nickname_notice.md # Official nicknames: OmniAssist → Omni, OmniAssist GUI → GUI Omni
 ├── main.py                  # Entry point (CLI by default, web server with --web)
 ├── config/
 │   └── config.yml           # Unified YAML configuration file for models, paths, and options
@@ -85,9 +89,9 @@ omniassist
 │   ├── api/                 # FastAPI server (REST endpoints & WebSocket streams)
 │   │   └── server.py
 │   ├── web/                 # Single-page web UI (no build step)
-│   │   ├── index.html       # Chat shell, session sidebar, inspector panel
+│   │   ├── index.html       # Chat shell, session sidebar, Omni's Computer / Omni's MCP Toolbox inspector
 │   │   ├── styles.css       # Dark theme styling
-│   │   └── app.js           # Streaming client, trace rendering, session management
+│   │   └── app.js           # Streaming client, Omni's Computer rendering, session management
 │   └── cli.py               # Interactive terminal interface for OmniAssist GUI
 ├── memory/                  # Multi-tiered memory architecture
 │   ├── conversation.py      # Working memory & short-term message buffer
@@ -224,9 +228,9 @@ OMNIASSIST_PORT=8000
 ```
 
 **Interface features:**
-- Streaming replies over a WebSocket, with a live trace of every plan, tool call, and tool result.
+- Streaming replies over a WebSocket, with a live feed in **Omni's Computer** of every plan, tool call, and tool result.
 - A session sidebar listing stored conversations (click to reopen, `×` to delete).
-- A tools inspector showing every registered tool, its description, and its parameters.
+- **Omni's MCP Toolbox**, showing every registered tool, its description, and its parameters.
 - A status indicator showing the active model and whether the app is in offline mode.
 
 **Endpoints:**
