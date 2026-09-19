@@ -1,6 +1,6 @@
 """
 ==============================================================================
- OMNIASSIST ENTRY POINT SCRIPT (2026.4 "Biscotti")
+ OMNIASSIST ENTRY POINT SCRIPT (v2026.4 Rename 1 "Biscotti Rename 1")
 ==============================================================================
  MODEL PRIORITY & FALLBACK HIERARCHY:
    Primary Model:  Gemini 3.5 Flash-Lite

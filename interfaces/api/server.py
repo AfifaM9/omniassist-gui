@@ -33,7 +33,7 @@ from core.agent import OmniAssist
 from memory.session import SessionPersistence
 
 WEB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "web")
-VERSION = '2026.4 "Biscotti"'
+VERSION = 'v2026.4 Rename 1 "Biscotti Rename 1"'
 
 # The agent can run shell commands and write files, so the API is not safe to
 # expose unauthenticated. Set OMNIASSIST_API_TOKEN to require a bearer token.

@@ -151,7 +151,7 @@ async function loadHealth() {
   try {
     const res = await apiFetch("/api/health");
     const h = await res.json();
-    el("version").textContent = `v${h.version}`;
+    el("version").textContent = h.version;
     el("model-text").textContent = h.model;
     const dot = el("status-dot");
     if (h.offline) {
