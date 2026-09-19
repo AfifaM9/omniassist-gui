@@ -7,7 +7,7 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 
 ## [v2026.4-rename] - 2026-09-19
 
-*Nickname release "Rename 1".*
+*Nickname release "Biscotti Rename 1".*
 
 ### Added
 - Added `docs/omni_personal/nickname_notice.md`, documenting that **OmniAssist** is nicknamed **Omni** and **OmniAssist GUI** is nicknamed **GUI Omni**.

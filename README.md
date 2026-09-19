@@ -4,9 +4,9 @@
 ![Lint](https://github.com/AfifaM9/omniassist-gui/actions/workflows/lint.yml/badge.svg)
 ![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Version](https://img.shields.io/badge/version-2026.4--rename-blue)
+![Version](https://img.shields.io/badge/version-2026.4_Rename_1-blue)
 
-Operationalized Multi-Agent Networked Intelligence & Autonomous System Services Integration Toolkit Graphical User Interface (2026.4 Rename 1 "Biscotti Rename 1")
+Operationalized Multi-Agent Networked Intelligence & Autonomous System Services Integration Toolkit Graphical User Interface (2026.4 Rename 1 "Biscotti Rename 1"). Its sister agent is **OmniAssist**, whose CLI is exposed through `interfaces/cli.py`.
 
 ---
 
