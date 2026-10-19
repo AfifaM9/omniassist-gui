@@ -7,7 +7,7 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 
 ## [v2026.4-deprecation] - 2026-10-19
 
-*Deprecation release "v2026.4 Deprecation 1".*
+*Deprecation release "v2026.4 Deprecation 1", codename "Biscotti Deprecation 1".*
 
 ### Changed
 - The browser **web GUI is now the default interface**: `python main.py` starts the web server (`--web` remains an accepted alias). `--host` / `--port` configure the bind address.
