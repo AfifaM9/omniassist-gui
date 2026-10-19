@@ -14,7 +14,7 @@
         <span class="brand-mark">OA</span>
         <div>
           <h1>OmniAssist GUI</h1>
-          <p class="version" id="version">v2026.4 Deprecation 1 "Biscotti Deprecation 1"</p>
+          <p class="version" id="version">v2026.5 "Cake"</p>
         </div>
       </div>
 
@@ -74,6 +74,28 @@
         <div class="tools" id="tools"></div>
       </section>
     </aside>
+  </div>
+
+  <div class="gate hidden" id="gate">
+    <div class="gate-card">
+      <span class="brand-mark">OA</span>
+      <h2 id="gate-title">Authentication required</h2>
+      <p class="gate-sub" id="gate-sub">Enter your credential to continue.</p>
+
+      <div class="gate-pane hidden" id="gate-token-pane">
+        <input type="password" id="gate-token-input" placeholder="Paste your GUI Omni token"
+               autocomplete="off" spellcheck="false" />
+        <button id="gate-token-submit">Unlock</button>
+      </div>
+
+      <div class="gate-pane hidden" id="gate-totp-pane">
+        <input id="gate-totp-input" inputmode="numeric" pattern="[0-9]*" maxlength="6"
+               placeholder="000000" autocomplete="one-time-code" spellcheck="false" />
+        <button id="gate-totp-submit">Verify</button>
+      </div>
+
+      <p class="gate-error" id="gate-error"></p>
+    </div>
   </div>
   <script src="/static/app.js"></script>
 </body>

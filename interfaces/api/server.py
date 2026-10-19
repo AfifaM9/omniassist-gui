@@ -1,6 +1,9 @@
 """FastAPI backend for the OmniAssist web UI.
 
 Endpoints:
+  GET  /api/auth              auth mode + whether a credential is required
+  POST /api/auth/token        exchange the GUI Omni token for a session
+  POST /api/auth/totp         exchange a 6-digit TOTP code for a session
   GET  /api/health            runtime status and model chain
   GET  /api/tools             registered tools and their parameters
   GET  /api/sessions          stored conversations
@@ -12,7 +15,6 @@ Endpoints:
 """
 
 import asyncio
-import hmac
 import logging
 import os
 import uuid
@@ -30,14 +32,20 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from core.agent import OmniAssist
+from core.auth import build_manager_from_env
 from memory.session import SessionPersistence
 
 WEB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "web")
-VERSION = 'v2026.4 Deprecation 1 "Biscotti Deprecation 1"'
+VERSION = 'v2026.5 "Cake"'
 
 # The agent can run shell commands and write files, so the API is not safe to
-# expose unauthenticated. Set OMNIASSIST_API_TOKEN to require a bearer token.
-API_TOKEN = os.environ.get("OMNIASSIST_API_TOKEN")
+# expose unauthenticated. The active mode is chosen by the launch flag
+# (--token / --totp) and carried in OMNIASSIST_AUTH_MODE:
+#   open  (:8000) no credential
+#   token (:8002) the GUI Omni bearer token
+#   totp  (:8001) a 6-digit TOTP from OMNIASSIST_TOTP_SECRET (locked if unset)
+API_TOKEN = os.environ.get("OMNIASSIST_API_TOKEN")  # kept for backward compatibility
+auth = build_manager_from_env()
 
 app = FastAPI(title="OmniAssist API", version=VERSION)
 sessions = SessionPersistence()
@@ -51,20 +59,47 @@ def get_agent(session_id: str) -> OmniAssist:
     return _agents[session_id]
 
 
-def _authorized(token: str | None) -> bool:
-    if not API_TOKEN:
+def _presented_credential(request: Request) -> str | None:
+    """Extracts a credential from the Authorization header or ?token= query."""
+    header = request.headers.get("authorization", "")
+    if header.lower().startswith("bearer "):
+        return header[7:]
+    return request.query_params.get("token")
+
+
+def _client_ip(request: Request) -> str:
+    return request.client.host if request.client else "unknown"
+
+
+def _authorized(credential: str | None) -> bool:
+    """True if the presented credential satisfies the active mode.
+
+    A previously issued session token is accepted in every credential mode, so
+    the UI only asks for the secret once per session.
+    """
+    if not auth.requires_credential:
         return True
-    return bool(token) and hmac.compare_digest(token, API_TOKEN)
+    if auth.is_valid_session(credential):
+        return True
+    if auth.mode.value == "token":
+        return auth.check_token(credential)
+    if auth.mode.value == "totp":
+        return auth.check_totp(credential)
+    return True
 
 
 async def require_token(request: Request):
     """Dependency guarding every state-changing or tool-running endpoint."""
-    if not API_TOKEN:
+    if not auth.requires_credential:
         return
-    header = request.headers.get("authorization", "")
-    token = header[7:] if header.lower().startswith("bearer ") else request.query_params.get("token")
-    if not _authorized(token):
-        raise HTTPException(status_code=401, detail="Missing or invalid API token")
+    if auth.is_locked_out(_client_ip(request)):
+        raise HTTPException(status_code=429, detail="Too many attempts; try again later")
+    if not _authorized(_presented_credential(request)):
+        raise HTTPException(status_code=401, detail="Missing or invalid credential")
+
+
+class CredentialRequest(BaseModel):
+    credential: str = Field(min_length=1)
 
 
 class PromptRequest(BaseModel):
@@ -78,6 +113,35 @@ def _record(session_id: str, prompt: str, answer: str, events: list[dict]) -> No
     messages.append({"role": "user", "content": prompt})
     messages.append({"role": "assistant", "content": answer, "events": events})
     sessions.save_session(session_id, {"messages": messages})
+
+
+@app.get("/api/auth")
+def auth_info():
+    """Public: tells the UI which gate to show. Never leaks the secret."""
+    return auth.describe()
+
+
+def _issue_or_401(request: Request, ok: bool) -> dict:
+    ip = _client_ip(request)
+    if auth.is_locked_out(ip):
+        raise HTTPException(status_code=429, detail="Too many attempts; try again later")
+    if not ok:
+        auth._record_failure(ip)
+        raise HTTPException(status_code=401, detail="Invalid credential")
+    auth._clear_failures(ip)
+    return {"session": auth.issue_session()}
+
+
+@app.post("/api/auth/token")
+def auth_with_token(req: CredentialRequest, request: Request):
+    """Exchanges the GUI Omni token for a session token."""
+    return _issue_or_401(request, auth.check_token(req.credential))
+
+
+@app.post("/api/auth/totp")
+def auth_with_totp(req: CredentialRequest, request: Request):
+    """Exchanges a 6-digit TOTP code for a session token."""
+    return _issue_or_401(request, auth.check_totp(req.credential))
 
 
 @app.get("/api/health")
@@ -145,7 +209,11 @@ async def ws_run(websocket: WebSocket):
     Client sends ``{"prompt": "...", "session_id": "..."}`` and receives one JSON
     frame per event, followed by a ``done`` frame.
     """
-    if not _authorized(websocket.query_params.get("token")):
+    ws_ip = websocket.client.host if websocket.client else "unknown"
+    if auth.requires_credential and (
+        auth.is_locked_out(ws_ip)
+        or not _authorized(websocket.query_params.get("token"))
+    ):
         await websocket.close(code=4401)
         return
     await websocket.accept()
