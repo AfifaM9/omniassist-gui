@@ -1,6 +1,6 @@
 app:
   name: "OmniAssist"
-  version: "v2026.4 Rename 1 \"Biscotti Rename 1\""
+  version: "v2026.4 Deprecation 1 \"Biscotti Deprecation 1\""
   description: "Operationalized Multi-Agent Networked Intelligence & Autonomous System Services Integration Toolkit"
 
 models:

@@ -4,9 +4,9 @@
 ![Lint](https://github.com/AfifaM9/omniassist-gui/actions/workflows/lint.yml/badge.svg)
 ![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Version](https://img.shields.io/badge/version-2026.4_Rename_1-blue)
+![Version](https://img.shields.io/badge/version-2026.4_Deprecation_1-blue)
 
-Operationalized Multi-Agent Networked Intelligence & Autonomous System Services Integration Toolkit Graphical User Interface (2026.4 Rename 1 "Biscotti Rename 1"). Its sister agent is **OmniAssist**, whose CLI is exposed through `interfaces/cli.py`.
+Operationalized Multi-Agent Networked Intelligence & Autonomous System Services Integration Toolkit Graphical User Interface (v2026.4 Deprecation 1 "Biscotti Deprecation 1"). Its sister agent is **OmniAssist**, whose CLI is exposed through `interfaces/cli.py`.
 
 ---
 
@@ -30,7 +30,7 @@ Operationalized Multi-Agent Networked Intelligence & Autonomous System Services 
 
 **OmniAssist GUI** (nicknamed **GUI Omni**) is a lightweight, modular, and extensible AI operational agent framework designed to bridge the gap between large language models and local machine execution. By combining the power of the Google GenAI SDK, native function-calling capabilities, and a flexible Model Context Protocol (MCP) tool registry, OmniAssist GUI operates directly within your terminal environment or in the browser as a fully autonomous assistant. The underlying agent, **OmniAssist**, is nicknamed **Omni** — see [`docs/omni_personal/nickname_notice.md`](docs/omni_personal/nickname_notice.md).
 
-The agent runs a real multi-step loop: it plans, calls tools, observes the results, and keeps iterating until the task is done. Two front-ends are included — an interactive terminal interface built on Rich, and a browser UI with a live execution feed in **Omni's Computer**.
+The agent runs a real multi-step loop: it plans, calls tools, observes the results, and keeps iterating until the task is done. The **browser UI** — with a live execution feed in **Omni's Computer** — is the default interface. The in-repo terminal CLI is **deprecated**; the standalone [OmniAssist](https://github.com/AfifaM9/omniassist) project owns the CLI.
 
 ---
 
@@ -39,7 +39,8 @@ The agent runs a real multi-step loop: it plans, calls tools, observes the resul
 - **Autonomous Tool Execution:** Dynamically interprets user intent, matches prompts against registered tools, and executes native Python or system commands.
 - **True Multi-Step Loop:** Tool results are fed back to the model as structured `function_response` turns, so the agent can chain calls, react to errors, and adapt before answering.
 - **Web UI with Omni's Computer:** Watch each planning step, tool call, and tool result stream into the browser over a WebSocket as it happens.
-- **Interactive CLI:** Powered by Python's `rich` and `readline` libraries to provide a fluid, uninterrupted input loop with arrow-key history and clean block rendering.
+- **Browser GUI (default):** A no-build single-page app served by the FastAPI backend, with WebSocket streaming, a session sidebar, and the **Omni's Computer** / **Omni's MCP Toolbox** inspectors.
+- **Interactive CLI (deprecated):** A `rich`/`readline` terminal loop remains at `interfaces/cli.py` behind `python main.py --cli`, kept only for backward compatibility — the standalone OmniAssist project provides the CLI.
 - **Robust Error Handling:** Intercepts runtime exceptions, LLM formatting issues, and tool-registry mismatches gracefully to keep the session alive.
 - **Model Fallback Chain:** Tries the primary model first, then automatically steps down a configured list of fallbacks when a model is unavailable.
 - **Offline Mode:** With no API key configured, the CLI, Web UI, and test suite still run end-to-end against a deterministic stub.
@@ -72,7 +73,7 @@ omniassist
 ├── docs/                    # Project documentation
 │   └── omni_personal/       # Omni-specific notes and conventions
 │       └── nickname_notice.md # Official nicknames: OmniAssist → Omni, OmniAssist GUI → GUI Omni
-├── main.py                  # Entry point (CLI by default, web server with --web)
+├── main.py                  # Entry point (web GUI by default; --cli runs the deprecated terminal loop)
 ├── config/
 │   └── config.yml           # Unified YAML configuration file for models, paths, and options
 ├── core/                    # Core agent orchestrator & execution loop
@@ -92,7 +93,7 @@ omniassist
 │   │   ├── index.html       # Chat shell, session sidebar, Omni's Computer / Omni's MCP Toolbox inspector
 │   │   ├── styles.css       # Dark theme styling
 │   │   └── app.js           # Streaming client, Omni's Computer rendering, session management
-│   └── cli.py               # Interactive terminal interface for OmniAssist GUI
+│   └── cli.py               # DEPRECATED interactive terminal interface (kept for compatibility)
 ├── memory/                  # Multi-tiered memory architecture
 │   ├── conversation.py      # Working memory & short-term message buffer
 │   ├── session.py           # Session persistence across agent reboots
@@ -116,7 +117,7 @@ omniassist
 ├── tests/                   # Automated test suite
 │   ├── test_agent_loop.py   # Agent loop, tool execution, and result feedback tests
 │   ├── test_api.py          # FastAPI endpoints, WebSocket streaming, and auth tests
-│   ├── test_cli.py          # Tests for CLI slash commands
+│   ├── test_cli.py          # Tests for the deprecated CLI slash commands
 │   ├── test_core.py         # Unit tests for initialization, config, and offline mode
 │   ├── test_fallback_chain.py # Model fallback ordering and failure handling
 │   ├── test_mcp_tools.py    # Tool registry discovery and execution tests
@@ -193,21 +194,17 @@ omniassist
 
 ## Running the Application
 
-**Option 1 — Terminal interface (default):**
+**Option 1 — Web UI (default):**
 ```bash
 python main.py
 ```
+The browser UI runs at <http://127.0.0.1:8000> (localhost) or <http://0.0.0.0:8000> (all interfaces). `--web` is accepted as an explicit alias for the default and `--host` / `--port` configure the bind address.
 
-Once loaded, you can chat with OmniAssist GUI or issue direct commands:
-- Type `/help` to see available slash commands.
-- Type `exit`, `quit`, or `q` to terminate the session (case insensitive).
-- Tool calls are printed inline (`=> tool(args)`) as the agent works.
-
-**Option 2 — Web UI:**
+**Option 2 — Terminal interface (deprecated):**
 ```bash
-python main.py --web
+python main.py --cli
 ```
-The browser UI runs at <http://127.0.0.1:8000> (localhost) or <http://0.0.0.0:8000> (all interfaces).
+> **Deprecated.** The in-repo terminal interface is kept only for backward compatibility and will be removed in a future release. The canonical CLI is the standalone [OmniAssist](https://github.com/AfifaM9/omniassist) project; for this project, use the browser UI above.
 
 ---
 

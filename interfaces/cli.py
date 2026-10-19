@@ -1,6 +1,15 @@
+"""DEPRECATED: legacy in-repo terminal interface for OmniAssist GUI.
+
+The browser GUI is the supported interface for this project, and the
+standalone OmniAssist project (https://github.com/AfifaM9/omniassist)
+already ships the canonical CLI. This module is kept only for backward
+compatibility and may be removed in a future release.
+"""
+
 import re
 import readline  # noqa: F401  # side-effect import; enables arrow-key input history
 import sys
+import warnings
 
 from rich.console import Console
 from rich.markdown import Markdown
@@ -33,11 +42,21 @@ def show_help():
 
 def main():
     """Interactive CLI rendering responses cleanly using Rich Markdown panels."""
+    warnings.warn(
+        "interfaces.cli is deprecated; use the browser GUI (python main.py) or the "
+        "standalone OmniAssist CLI instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    console.print(
+        "[bold yellow]Deprecated:[/bold yellow] this in-repo terminal CLI will be removed. "
+        "Use the browser GUI ([cyan]python main.py[/cyan]) or the standalone OmniAssist CLI."
+    )
     console.print(Panel.fit(
         "[bold cyan]OmniAssist[/bold cyan]\n"
         "[italic]Operationalized Multi-Agent Networked Intelligence & "
         "Autonomous System Services Integration Toolkit — the CLI of OmniAssist, "
-        "sister agent of OmniAssist GUI (v2026.4 Rename 1 \"Biscotti Rename 1\")[/italic]",
+        "sister agent of OmniAssist GUI (v2026.4 Deprecation 1 \"Biscotti Deprecation 1\")[/italic]",
         border_style="cyan"
     ))
     console.print("[dim]Type '/help' for commands or 'exit', 'quit', 'q' to terminate session.[/dim]\n")
