@@ -6,7 +6,8 @@ This document records the official nicknames and relationships used for the proj
 
 The sister agent — the CLI operational, multi-agent engine that plans, calls tools, and
 iterates until a task is done — is nicknamed [**Omni**](https://github.com/AfifaM9/omniassist).
-Its CLI is exposed through `interfaces/cli.py`.
+Its CLI is exposed through that standalone project's `interfaces/cli.py`. It is the canonical
+CLI; the in-repo terminal interface in this GUI project is deprecated.
 
 ## OmniAssist GUI is nicknamed **GUI Omni**
 

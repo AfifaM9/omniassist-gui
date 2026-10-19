@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 and this project adheres to [Calendar Versioning](https://calver.org/).
 
+## [Unreleased]
+
+### Changed
+- The browser **web GUI is now the default interface**: `python main.py` starts the web server (`--web` remains an accepted alias). `--host` / `--port` configure the bind address.
+- **Deprecated the in-repo terminal CLI.** The standalone [OmniAssist](https://github.com/AfifaM9/omniassist) project already provides the CLI, so `interfaces/cli.py` is retained only for backward compatibility and is reachable via the new `python main.py --cli` flag. It emits a `DeprecationWarning` and a visible notice, and may be removed in a future release.
+- Updated `README.md` so the web UI is documented as the default and the terminal interface is flagged as deprecated.
+
 ## [v2026.4-rename] - 2026-09-19
 
 *Nickname release "Biscotti Rename 1".*
