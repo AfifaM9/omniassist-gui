@@ -5,7 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 and this project adheres to [Calendar Versioning](https://calver.org/).
 
-## [Unreleased]
+## [v2026.4-deprecation] - 2026-10-19
+
+*Deprecation release "v2026.4 Deprecation 1".*
 
 ### Changed
 - The browser **web GUI is now the default interface**: `python main.py` starts the web server (`--web` remains an accepted alias). `--host` / `--port` configure the bind address.
@@ -76,5 +78,6 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 - Documented that `mcp_tools/shell_tool.py` is a denylist and not a sandbox. It is bypassable via path traversal (`rm -rf /opt/../etc`), trailing slashes, unexpanded variables (`$HOME`), long flags (`--recursive --force`), command chaining, and `find / -delete`. The README and Security section now state this plainly rather than describing the tooling as sandboxed.
 - Added optional token auth to the web API, which exposes shell-executing tools over HTTP for the first time.
 
+[v2026.4-deprecation]: https://github.com/AfifaM9/omniassist-gui/tree/v2026.4-deprecation
 [v2026.4-rename]: https://github.com/AfifaM9/omniassist-gui/tree/v2026.4-rename
 [v2026.4]: https://github.com/AfifaM9/omniassist/tree/v2026.4

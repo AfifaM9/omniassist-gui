@@ -1,6 +1,6 @@
 """
 ==============================================================================
- OMNIASSIST GUI ENTRY POINT SCRIPT (v2026.4 Rename 1 "Biscotti Rename 1")
+ OMNIASSIST GUI ENTRY POINT SCRIPT (v2026.4 Deprecation 1)
 ==============================================================================
  The browser GUI is the default interface. The legacy in-repo terminal CLI is
  DEPRECATED — the standalone OmniAssist project already provides the CLI
