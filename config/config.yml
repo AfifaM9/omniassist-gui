@@ -1,6 +1,6 @@
 app:
   name: "OmniAssist"
-  version: "v2026.4 Deprecation 1 \"Biscotti Deprecation 1\""
+  version: "v2026.5 \"Cake\""
   description: "Operationalized Multi-Agent Networked Intelligence & Autonomous System Services Integration Toolkit"
 
 models:
@@ -17,3 +17,15 @@ models:
 agent:
   max_iterations: 10
   temperature: 0.2
+
+auth:
+  # Ports for the three auth modes (selected by the launch flag):
+  #   --token -> token  --totp -> totp  (no flag) -> open
+  ports:
+    open: 8000
+    totp: 8001
+    token: 8002
+  totp:
+    digits: 6
+    step_seconds: 30
+  session_ttl_seconds: 28800

@@ -1,12 +1,20 @@
 """
 ==============================================================================
- OMNIASSIST GUI ENTRY POINT SCRIPT (v2026.4 Deprecation 1 \"Biscotti Deprecation 1\")
+ OMNIASSIST GUI ENTRY POINT SCRIPT (v2026.5 "Cake")
 ==============================================================================
  The browser GUI is the default interface. The legacy in-repo terminal CLI is
  DEPRECATED — the standalone OmniAssist project already provides the CLI
  (https://github.com/AfifaM9/omniassist, exposed via interfaces/cli.py there).
  It is retained here behind `--cli` only for backward compatibility and may be
  removed in a future release.
+
+ THREE-PORT AUTH SYSTEM:
+   :8000  (default)  no auth            python main.py
+   :8001  --totp     6-digit TOTP code  python main.py --totp
+   :8002  --token    GUI Omni token     python main.py --token
+   The TOTP secret (OMNIASSIST_TOTP_SECRET) and the GUI Omni token
+   (OMNIASSIST_API_TOKEN) live in .env. In --totp mode the UI stays on the
+   6-digit box until a valid code is entered, even if no secret is configured.
 
  MODEL PRIORITY & FALLBACK HIERARCHY:
    Primary Model:  Gemini 3.5 Flash-Lite
@@ -20,10 +28,11 @@
                    chain until a model succeeds.
 
  USAGE:
-   python main.py                 # web UI + API (default http://127.0.0.1:8000)
-   python main.py --web           # same as default (kept for compatibility)
-   python main.py --host 0.0.0.0 --port 12000
-   python main.py --cli           # DEPRECATED legacy terminal interface
+   python main.py                          # :8000 web UI, no auth
+   python main.py --token                  # :8002 GUI Omni token gate
+   python main.py --totp                   # :8001 TOTP gate
+   python main.py --totp --port 9001       # explicit port still honoured
+   python main.py --cli                    # DEPRECATED legacy terminal interface
 ==============================================================================
 """
 
@@ -70,6 +79,17 @@ def run_legacy_cli():
     cli_main()
 
 
+def _resolve_auth(args):
+    """Maps the launch flag to an (auth mode, default port) pair."""
+    from core.auth import AuthMode
+
+    if args.totp:
+        return AuthMode.TOTP
+    if args.token:
+        return AuthMode.TOKEN
+    return AuthMode.OPEN
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="omniassist-gui",
@@ -85,17 +105,48 @@ def main():
         action="store_true",
         help="DEPRECATED: launch the legacy in-repo terminal interface",
     )
-    parser.add_argument("--host", default=os.environ.get("OMNIASSIST_HOST", "127.0.0.1"))
-    parser.add_argument("--port", type=int, default=int(os.environ.get("OMNIASSIST_PORT", "8000")))
-    parser.add_argument("--reload", action="store_true", help="Auto-reload the web server on file changes")
+    mode_group = parser.add_mutually_exclusive_group()
+    mode_group.add_argument(
+        "--token",
+        action="store_true",
+        help="Auth via the GUI Omni token (port 8002 by default)",
+    )
+    mode_group.add_argument(
+        "--totp",
+        action="store_true",
+        help="Auth via a 6-digit TOTP code (port 8001 by default)",
+    )
+    parser.add_argument(
+        "--host", default=os.environ.get("OMNIASSIST_HOST", "127.0.0.1")
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=None,
+        help="Override the bind port (defaults to the auth mode's port)",
+    )
+    parser.add_argument(
+        "--reload", action="store_true", help="Auto-reload the web server on file changes"
+    )
     args = parser.parse_args()
 
     if args.cli:
         run_legacy_cli()
         return
 
-    # Default interface is the browser GUI; --web is an explicit no-op alias.
-    run_web(args.host, args.port, args.reload)
+    mode = _resolve_auth(args)
+    # The server reads the mode from the environment.
+    os.environ["OMNIASSIST_AUTH_MODE"] = mode.value
+    port = args.port if args.port is not None else mode.default_port
+
+    if mode.value == "open" and args.host not in ("127.0.0.1", "localhost", "::1"):
+        print(
+            f"WARNING: binding the unauthenticated (:8000) UI to {args.host}. "
+            "Use --token or --totp before exposing it beyond localhost.",
+            file=sys.stderr,
+        )
+
+    run_web(args.host, port, args.reload)
 
 
 if __name__ == "__main__":

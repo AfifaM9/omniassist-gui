@@ -12,11 +12,11 @@ let socket = null;
 let streaming = false;
 let current = null; // { body, events }
 
-/* Token support: read from ?token= or localStorage, then strip it from the URL. */
+/* Credentials: prefer a server-issued session, fall back to a pasted token. */
 const urlToken = new URLSearchParams(location.search).get("token");
-if (urlToken) localStorage.setItem("omniassist_token", urlToken);
-const TOKEN = localStorage.getItem("omniassist_token") || "";
 if (urlToken) history.replaceState({}, "", location.pathname);
+let TOKEN = localStorage.getItem("omniassist_session") || urlToken || localStorage.getItem("omniassist_token") || "";
+let AUTH_INFO = { mode: "open", requires_credential: false };
 
 function authHeaders(extra = {}) {
   return TOKEN ? { ...extra, Authorization: `Bearer ${TOKEN}` } : extra;
@@ -24,9 +24,10 @@ function authHeaders(extra = {}) {
 
 async function apiFetch(path, options = {}) {
   const res = await fetch(path, { ...options, headers: authHeaders(options.headers) });
-  if (res.status === 401) {
-    messages.innerHTML = "";
-    addMessage("assistant", "Authentication required. Open the app with `?token=<OMNIASSIST_API_TOKEN>` in the URL.", { error: true });
+  if (res.status === 401 || res.status === 429) {
+    localStorage.removeItem("omniassist_session");
+    TOKEN = "";
+    showGate(AUTH_INFO, res.status === 429 ? "Too many attempts. Wait a moment and retry." : "");
     throw new Error("unauthorized");
   }
   return res;
@@ -245,6 +246,76 @@ function newChat() {
   refreshSessions();
 }
 
+/* ---------------- auth gate ---------------- */
+
+function mount() {
+  el("gate").classList.add("hidden");
+  loadHealth();
+  loadTools();
+  refreshSessions();
+  connect();
+}
+
+function showGate(info, message = "") {
+  AUTH_INFO = info || AUTH_INFO;
+  const gate = el("gate");
+  gate.classList.remove("hidden");
+  el("status-dot").className = "dot offline";
+  el("status-text").textContent = "locked";
+
+  const mode = AUTH_INFO.mode || "open";
+  el("gate-token-pane").classList.toggle("hidden", mode !== "token");
+  el("gate-totp-pane").classList.toggle("hidden", mode !== "totp");
+
+  if (mode === "totp") {
+    el("gate-title").textContent = "Two-factor code required";
+    el("gate-sub").textContent = AUTH_INFO.totp_configured
+      ? "Enter the 6-digit code from your authenticator app."
+      : "No TOTP secret is configured on the server (OMNIASSIST_TOTP_SECRET). "
+        + "Set it in .env to unlock — until then this screen cannot be passed.";
+    el("gate-totp-input").focus();
+  } else if (mode === "token") {
+    el("gate-title").textContent = "Token required";
+    el("gate-sub").textContent = "Paste your GUI Omni token to unlock.";
+    el("gate-token-input").focus();
+  } else {
+    el("gate-title").textContent = "Access locked";
+    el("gate-sub").textContent = "This server requires a credential.";
+  }
+  if (message) el("gate-error").textContent = message;
+}
+
+function gateError(text) {
+  const box = el("gate-error");
+  box.textContent = text;
+  const card = document.querySelector(".gate-card");
+  card.classList.remove("shake");
+  void card.offsetWidth; /* restart the animation */
+  card.classList.add("shake");
+}
+
+async function submitCredential(kind, value) {
+  if (!value) return;
+  try {
+    const res = await fetch(`/api/auth/${kind}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ credential: value }),
+    });
+    if (!res.ok) {
+      gateError(res.status === 429 ? "Too many attempts. Wait a moment." : "Incorrect credential. Try again.");
+      return;
+    }
+    const data = await res.json();
+    TOKEN = data.session;
+    localStorage.setItem("omniassist_session", TOKEN);
+    el("gate-error").textContent = "";
+    mount();
+  } catch (e) {
+    gateError(`Request failed: ${e.message}`);
+  }
+}
+
 /* ---------------- websocket streaming ---------------- */
 
 function connect() {
@@ -387,7 +458,36 @@ el("toggle-trace").onclick = () => {
   document.querySelector('[data-tab="trace"]').click();
 };
 
-loadHealth();
-loadTools();
-refreshSessions();
-connect();
+async function boot() {
+  try {
+    AUTH_INFO = await (await fetch("/api/auth")).json();
+  } catch {
+    AUTH_INFO = { mode: "open", requires_credential: false };
+  }
+  if (AUTH_INFO.requires_credential && !TOKEN) {
+    showGate(AUTH_INFO);
+    return;
+  }
+  mount();
+}
+
+/* Gate wiring: paste auto-submits the token; the 6-digit box auto-verifies. */
+el("gate-token-submit").onclick = () => submitCredential("token", el("gate-token-input").value.trim());
+el("gate-token-input").addEventListener("paste", (e) => {
+  const text = (e.clipboardData || window.clipboardData).getData("text").trim();
+  if (text) { e.preventDefault(); el("gate-token-input").value = text; submitCredential("token", text); }
+});
+el("gate-token-input").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") submitCredential("token", el("gate-token-input").value.trim());
+});
+el("gate-totp-submit").onclick = () => submitCredential("totp", el("gate-totp-input").value.trim());
+el("gate-totp-input").addEventListener("input", () => {
+  const box = el("gate-totp-input");
+  box.value = box.value.replace(/\D/g, "").slice(0, 6);
+  if (box.value.length === 6) submitCredential("totp", box.value);
+});
+el("gate-totp-input").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") submitCredential("totp", el("gate-totp-input").value.trim());
+});
+
+boot();

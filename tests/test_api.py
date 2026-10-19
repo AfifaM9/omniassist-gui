@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
+from core.auth import AuthManager, AuthMode
 from interfaces.api import server
 
 
@@ -110,13 +111,14 @@ class TestAuth(unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         server.sessions = server.SessionPersistence(session_dir=self._tmp.name)
         server._agents.clear()
-        server.API_TOKEN = "secret-token"
+        self._prev_auth = server.auth
+        server.auth = AuthManager(mode=AuthMode.TOKEN, api_token="secret-token")
         self._env = patch.dict(os.environ, {}, clear=True)
         self._env.start()
         self.client = TestClient(server.app)
 
     def tearDown(self):
-        server.API_TOKEN = None
+        server.auth = self._prev_auth
         self._env.stop()
         self._tmp.cleanup()
 

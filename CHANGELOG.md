@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 and this project adheres to [Calendar Versioning](https://calver.org/).
 
+## [v2026.5-cake] - 2026-10-19
+
+*Release "v2026.5 \"Cake\"".*
+
+### Added
+- **Three-port auth system.** The launch flag now selects the port and the credential gate: `:8000` (open, no credential), `:8001` (`--totp`, 6-digit TOTP), `:8002` (`--token`, GUI Omni token). `--host` / `--port` still override.
+- `core/totp.py` — dependency-free RFC 6238 TOTP (HMAC-SHA1, 30 s step, 6 digits, ±1 window), verified against the RFC Appendix B vectors.
+- `core/auth.py` — auth modes, in-memory session tokens (8 h TTL), and a per-IP failed-attempt throttle.
+- `GET /api/auth`, `POST /api/auth/token`, `POST /api/auth/totp`; sessions are accepted as bearer credentials by every guarded endpoint and the WebSocket.
+- Browser auth gate: a token textbox that auto-detects pasted tokens, and a 6-digit TOTP box that auto-verifies at 6 digits.
+- `OMNIASSIST_TOTP_SECRET` documented in `.env.example`; `auth:` block added to `config/config.yml`.
+
+### Changed
+- Version bumped to **v2026.5 "Cake"** (changelog id `v2026.5-cake`).
+- In **TOTP mode the absence of a secret means locked, not open**: the UI stays on the 6-digit box and no code is ever valid, so the gate cannot be bypassed by leaving `OMNIASSIST_TOTP_SECRET` empty.
+
 ## [v2026.4-deprecation] - 2026-10-19
 
 *Deprecation release "v2026.4 Deprecation 1", codename "Biscotti Deprecation 1".*
@@ -78,6 +94,7 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 - Documented that `mcp_tools/shell_tool.py` is a denylist and not a sandbox. It is bypassable via path traversal (`rm -rf /opt/../etc`), trailing slashes, unexpanded variables (`$HOME`), long flags (`--recursive --force`), command chaining, and `find / -delete`. The README and Security section now state this plainly rather than describing the tooling as sandboxed.
 - Added optional token auth to the web API, which exposes shell-executing tools over HTTP for the first time.
 
+[v2026.5-cake]: https://github.com/AfifaM9/omniassist-gui/tree/v2026.5-cake
 [v2026.4-deprecation]: https://github.com/AfifaM9/omniassist-gui/tree/v2026.4-deprecation
 [v2026.4-rename]: https://github.com/AfifaM9/omniassist-gui/tree/v2026.4-rename
 [v2026.4]: https://github.com/AfifaM9/omniassist/tree/v2026.4

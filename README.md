@@ -4,9 +4,9 @@
 ![Lint](https://github.com/AfifaM9/omniassist-gui/actions/workflows/lint.yml/badge.svg)
 ![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Version](https://img.shields.io/badge/version-2026.4_Deprecation_1-blue)
+![Version](https://img.shields.io/badge/version-2026.5_Cake-blue)
 
-Operationalized Multi-Agent Networked Intelligence & Autonomous System Services Integration Toolkit Graphical User Interface (v2026.4 Deprecation 1 "Biscotti Deprecation 1"). Its sister agent is **OmniAssist**, whose CLI is exposed through `interfaces/cli.py`.
+Operationalized Multi-Agent Networked Intelligence & Autonomous System Services Integration Toolkit Graphical User Interface (v2026.5 "Cake"). Its sister agent is **OmniAssist**, whose CLI is exposed through `interfaces/cli.py`.
 
 ---
 
@@ -200,6 +200,34 @@ python main.py
 ```
 The browser UI runs at <http://127.0.0.1:8000> (localhost) or <http://0.0.0.0:8000> (all interfaces). `--web` is accepted as an explicit alias for the default and `--host` / `--port` configure the bind address.
 
+### Three-port auth system
+
+The launch flag selects both the port and the credential gate:
+
+| Port | Flag | Mode | Credential |
+| :--- | :--- | :--- | :--- |
+| `8000` | *(none)* | open | none |
+| `8001` | `--totp` | TOTP | 6-digit code from `OMNIASSIST_TOTP_SECRET` |
+| `8002` | `--token` | token | the GUI Omni token (`OMNIASSIST_API_TOKEN`) |
+
+```bash
+python main.py            # :8000, no auth
+python main.py --token    # :8002, paste the GUI Omni token to unlock
+python main.py --totp     # :8001, enter the 6-digit TOTP code
+```
+
+`--host` / `--port` still override the defaults (e.g. `python main.py --totp --port 9001`).
+
+- **Token mode** — the UI shows a textbox; pasting the GUI Omni token detects and submits it automatically. Empty token ⇒ the mode falls back to open (as before).
+- **TOTP mode** — the UI shows a 6-digit box and **stays on it until a correct code is entered**. If `OMNIASSIST_TOTP_SECRET` is not set, the mode is *locked*: no code can ever be valid, so the screen cannot be passed (it is never silently opened).
+- A successful login issues an in-memory session token (8 h) so the credential is asked once. Failed attempts are throttled (5 tries, then a short lockout).
+
+Generate a TOTP secret (base32) for `.env`:
+```bash
+python -c "from core.totp import generate_secret; print(generate_secret())"
+```
+Then scan/enter it in any authenticator app (RFC 6238, 30 s step, 6 digits).
+
 **Option 2 — Terminal interface (deprecated):**
 ```bash
 python main.py --cli
@@ -235,6 +263,9 @@ OMNIASSIST_PORT=8000
 | Method | Path | Description |
 | :--- | :--- | :--- |
 | `GET` | `/` | The single-page web UI |
+| `GET` | `/api/auth` | Auth mode and whether a credential is required |
+| `POST` | `/api/auth/token` | Exchange the GUI Omni token for a session token |
+| `POST` | `/api/auth/totp` | Exchange a 6-digit TOTP code for a session token |
 | `GET` | `/api/health` | Status, active model, fallback chain, tool count |
 | `GET` | `/api/tools` | Registered tools with parameter metadata |
 | `GET` | `/api/sessions` | Stored conversations, newest first |
