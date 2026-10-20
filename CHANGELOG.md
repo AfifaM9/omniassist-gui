@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 and this project adheres to [Calendar Versioning](https://calver.org/).
 
+## [v2026.6-dirt-cake] - 2026-10-19
+
+*Release "v2026.6 \"Dirt Cake\"".*
+
+### Changed
+- **Model hierarchy refreshed.** The primary model is now `gemini-3.6-flash-lite`; `gemini-3.5-flash-lite` and the previous chain follow as fallbacks (`gemini-3.6-flash-lite` -> `gemini-3.5-flash-lite` -> `gemini-3.1-flash-lite` -> `gemini-3.5-flash` -> `gemini-3-flash-preview` -> `gemini-2.5-flash` -> `gemini-3.8-flash` -> `gemma-4-31b-it` -> `gemma-4-26b-a4b-it`).
+- Version bumped to **v2026.6 "Dirt Cake"** (changelog id `v2026.6-dirt-cake`).
+
 ## [v2026.5-cake] - 2026-10-19
 
 *Release "v2026.5 \"Cake\"".*
@@ -94,6 +102,7 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 - Documented that `mcp_tools/shell_tool.py` is a denylist and not a sandbox. It is bypassable via path traversal (`rm -rf /opt/../etc`), trailing slashes, unexpanded variables (`$HOME`), long flags (`--recursive --force`), command chaining, and `find / -delete`. The README and Security section now state this plainly rather than describing the tooling as sandboxed.
 - Added optional token auth to the web API, which exposes shell-executing tools over HTTP for the first time.
 
+[v2026.6-dirt-cake]: https://github.com/AfifaM9/omniassist-gui/tree/v2026.6-dirt-cake
 [v2026.5-cake]: https://github.com/AfifaM9/omniassist-gui/tree/v2026.5-cake
 [v2026.4-deprecation]: https://github.com/AfifaM9/omniassist-gui/tree/v2026.4-deprecation
 [v2026.4-rename]: https://github.com/AfifaM9/omniassist-gui/tree/v2026.4-rename

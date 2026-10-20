@@ -21,8 +21,8 @@ class TestOmniAssistCore(unittest.TestCase):
 
     def test_config_is_loaded(self):
         agent = OmniAssist(api_key="test-key")
-        self.assertEqual(agent.model_id, "gemini-3.5-flash-lite")
-        self.assertIn("gemini-3.1-flash-lite", agent.fallback_models)
+        self.assertEqual(agent.model_id, "gemini-3.6-flash-lite")
+        self.assertIn("gemini-3.5-flash-lite", agent.fallback_models)
         self.assertEqual(agent.max_iterations, 10)
 
 

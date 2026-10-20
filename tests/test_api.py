@@ -30,7 +30,7 @@ class TestApi(unittest.TestCase):
         self.assertEqual(data["status"], "ok")
         self.assertTrue(data["offline"])
         self.assertGreater(data["tools"], 0)
-        self.assertEqual(data["model"], "gemini-3.5-flash-lite")
+        self.assertEqual(data["model"], "gemini-3.6-flash-lite")
 
     def test_no_token_configured_means_open_access(self):
         """With no OMNIASSIST_API_TOKEN set, local use needs no credentials."""

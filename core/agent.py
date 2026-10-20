@@ -24,7 +24,7 @@ try:
 except ImportError:  # pragma: no cover - dotenv is optional at runtime
     pass
 
-DEFAULT_MODEL = "gemini-3.5-flash-lite"
+DEFAULT_MODEL = "gemini-3.6-flash-lite"
 
 
 class OfflineClient:
