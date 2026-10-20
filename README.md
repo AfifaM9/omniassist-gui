@@ -1,12 +1,16 @@
 # OmniAssist GUI 🚀
 
+> [!NOTE]
+>
+> This is the **GUI** version of OmniAssist. For the command-line interface, see the [OmniAssist CLI Repository](https://github.com/AfifaM9/omniassist) (sister project).
+
 ![CI](https://github.com/AfifaM9/omniassist-gui/actions/workflows/ci.yml/badge.svg)
 ![Lint](https://github.com/AfifaM9/omniassist-gui/actions/workflows/lint.yml/badge.svg)
 ![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Version](https://img.shields.io/badge/version-2026.5_Cake-blue)
+![Version](https://img.shields.io/badge/version-2026.6_Dirt_Cake-blue)
 
-Operationalized Multi-Agent Networked Intelligence & Autonomous System Services Integration Toolkit Graphical User Interface (v2026.5 "Cake"). Its sister agent is **OmniAssist**, whose CLI is exposed through `interfaces/cli.py`.
+Operationalized Multi-Agent Networked Intelligence & Autonomous System Services Integration Toolkit Graphical User Interface (v2026.6 "Dirt Cake"). Its sister agent is **OmniAssist**, whose CLI is exposed through `interfaces/cli.py`.
 
 ---
 
@@ -179,8 +183,9 @@ omniassist
 
    ```yaml
    models:
-     primary: "gemini-3.5-flash-lite"
+     primary: "gemini-3.6-flash-lite"
      fallbacks:
+       - "gemini-3.5-flash-lite"
        - "gemini-3.1-flash-lite"
        - "gemini-3.5-flash"
        - "gemini-3-flash-preview"

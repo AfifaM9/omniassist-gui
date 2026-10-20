@@ -36,7 +36,7 @@ from core.auth import build_manager_from_env
 from memory.session import SessionPersistence
 
 WEB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "web")
-VERSION = 'v2026.5 "Cake"'
+VERSION = 'v2026.6 "Dirt Cake"'
 
 # The agent can run shell commands and write files, so the API is not safe to
 # expose unauthenticated. The active mode is chosen by the launch flag
