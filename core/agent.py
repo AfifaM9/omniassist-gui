@@ -16,6 +16,7 @@ from core.router import TaskRouter
 from core.selfmodify import SelfModifier
 from core.state import ConversationState
 from mcp_tools.registry import MCPToolRegistry
+from memory.vector_store import VectorStore
 
 try:
     from dotenv import load_dotenv
@@ -25,6 +26,8 @@ except ImportError:  # pragma: no cover - dotenv is optional at runtime
     pass
 
 DEFAULT_MODEL = "gemini-3.6-flash-lite"
+DEFAULT_MEMORY_DIR = "./data"
+MAX_MEMORY_SNIPPETS = 3
 
 
 class OfflineClient:
@@ -68,6 +71,14 @@ class OmniAssist:
         self.fallback_models = []
         self._load_config(model_id)
 
+        # Long-term semantic memory lives beside the session file so a single
+        # volume holds all persisted agent state.
+        self.memory_dir = os.environ.get("OMNIASSIST_MEMORY_DIR", DEFAULT_MEMORY_DIR)
+        self.memory = VectorStore(
+            storage_path=os.path.join(self.memory_dir, "vector_index.json")
+        )
+        self.memory_enabled = True
+
         self.api_key = api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
         self.offline = not self.api_key
         if self.offline:
@@ -98,8 +109,20 @@ class OmniAssist:
         self.max_iterations = int(agent_cfg.get("max_iterations", self.max_iterations))
         self.temperature = float(agent_cfg.get("temperature", self.temperature))
 
-    def _build_system_prompt(self, plan: str) -> str:
+    def _build_system_prompt(self, plan: str, memories: list | None = None) -> str:
         """Generates an explicit system prompt directing multi-step autonomous behavior."""
+        memory_block = ""
+        if memories:
+            notes = "\n".join(
+                f"- [{item['doc_id']}] {item['text'].strip()}" for item in memories
+            )
+            memory_block = (
+                "\n### RECALLED LONG-TERM MEMORY:\n"
+                "These notes were recalled from earlier sessions and may be stale. "
+                "Treat them as hints, verify anything critical with a tool, and prefer "
+                "the current conversation when they conflict.\n"
+                f"{notes}\n"
+            )
         return f"""You are OmniAssist, an autonomous, highly capable AI operational agent.
 
 ### CORE INSTRUCTIONS & AUTONOMY:
@@ -110,19 +133,62 @@ class OmniAssist:
 
 ### CURRENT CONTEXT & STRATEGIC PLAN:
 {plan}
-"""
+{memory_block}"""
+
+    def recall(self, query: str, top_k: int = MAX_MEMORY_SNIPPETS) -> list:
+        """Returns long-term memory snippets relevant to ``query``."""
+        if not self.memory_enabled:
+            return []
+        try:
+            return self.memory.search(query, top_k=top_k)
+        except Exception:  # noqa: BLE001 - memory must never break a run
+            return []
+
+    def remember(self, doc_id: str, text: str, metadata: dict | None = None) -> str:
+        """Stores a note in long-term semantic memory and persists the index."""
+        if not self.memory_enabled:
+            return "Memory disabled."
+        result = self.memory.add_document(doc_id, text, metadata=metadata)
+        if result.startswith("Document"):
+            self.memory.save()
+        return result
+
+    def _finish_turn(self, prompt: str, response_text: str, tool_log: list) -> None:
+        """Persists the completed turn and exposes the tool log for inspection."""
+        self._remember_turn(prompt, response_text, tool_log)
+        self.last_tool_log = tool_log
+
+    def _remember_turn(self, prompt: str, response_text: str, tool_log: list) -> None:
+        """Persists a compact record of the turn so future sessions can recall it."""
+        if not self.memory_enabled:
+            return
+        try:
+            # Count user turns so the first exchange is turn-0, not turn-1.
+            turn_index = sum(
+                1 for message in self.state.get_history() if message["role"] == "user"
+            ) - 1
+            tools_used = ", ".join(sorted({entry["tool"] for entry in tool_log})) or "none"
+            note = (
+                f"User asked: {prompt.strip()[:400]}\n"
+                f"Tools used: {tools_used}\n"
+                f"Answer: {str(response_text).strip()[:600]}"
+            )
+            self.memory.add_document(f"turn-{turn_index}", note, metadata={"tools": tools_used})
+            self.memory.save()
+        except Exception:  # noqa: BLE001 - persistence is best-effort
+            pass
 
     def _model_chain(self) -> list[str]:
         return [self.model_id] + [m for m in self.fallback_models if m and m != self.model_id]
 
-    def _build_config(self, plan: str):
+    def _build_config(self, plan: str, memories: list | None = None):
         """Builds the SDK config object, including tool declarations."""
         if self.offline:
             return None
         from google.genai import types
 
         kwargs = {
-            "system_instruction": self._build_system_prompt(plan),
+            "system_instruction": self._build_system_prompt(plan, memories),
             "temperature": self.temperature,
         }
         declarations = self.router.tool_declarations()
@@ -206,12 +272,16 @@ class OmniAssist:
         plan = self._plan(prompt)
         yield AgentEvent("plan", plan)
 
+        # Recall relevant notes from earlier sessions before the first model call.
+        memories = self.recall(prompt)
+
         try:
-            config = self._build_config(plan)
+            config = self._build_config(plan, memories)
         except Exception as e:  # noqa: BLE001
             yield AgentEvent("error", f"Agent Runtime Exception Handled: {e}")
             return
 
+        tool_log = []
         contents = self._initial_contents(prompt)
         max_iterations = max(1, self.max_iterations)
         for iteration in range(max_iterations):
@@ -240,6 +310,7 @@ class OmniAssist:
             if not calls:
                 text = getattr(response, "text", None) or "Execution completed."
                 self.state.add_message("assistant", text)
+                self._finish_turn(prompt, text, tool_log)
                 yield AgentEvent("final", text)
                 return
 
@@ -249,10 +320,12 @@ class OmniAssist:
                 yield AgentEvent("tool_call", f"{call.name}({args})", tool=call.name, args=args)
                 result = self.router.execute(call.name, args)
                 yield AgentEvent("tool_result", result, tool=call.name)
+                tool_log.append({"tool": call.name, "args": args, "result": result})
                 observations.append((call, result))
 
             contents = self._append_tool_turn(contents, calls, observations)
 
         message = "Reached the maximum number of iterations before completing the task."
         self.state.add_message("assistant", message)
+        self._finish_turn(prompt, message, tool_log)
         yield AgentEvent("final", message)

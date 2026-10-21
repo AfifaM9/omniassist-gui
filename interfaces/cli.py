@@ -36,8 +36,42 @@ def show_help():
     table.add_column("Description")
 
     table.add_row("/help", "Show this help message")
+    table.add_row("/memory", "Show long-term memory backend, path, count, and recent notes")
+    table.add_row("/tools", "List registered MCP tools")
 
     console.print(table)
+    console.print()
+
+
+def show_memory(agent):
+    """Displays the long-term semantic memory backend, path, and recent notes."""
+    table = Table(show_header=False, box=None)
+    table.add_column("Field", style="cyan", width=16)
+    table.add_column("Value")
+    table.add_row("Backend", agent.memory.backend)
+    table.add_row("Storage", agent.memory.storage_path)
+    table.add_row("Documents", str(len(agent.memory)))
+    table.add_row("Enabled", "yes" if agent.memory_enabled else "no")
+    console.print(table)
+
+    recent = agent.memory.recent(5)
+    if recent:
+        console.print("[dim]Recent notes:[/dim]")
+        for r in recent:
+            console.print(f"  [cyan]{r['doc_id']}[/cyan]: {r['text'].splitlines()[0][:100]}")
+    console.print()
+
+
+def show_tools(agent):
+    """Lists every tool the MCP registry discovered."""
+    table = Table(show_header=True, header_style="bold magenta")
+    table.add_column("Tool", style="cyan", width=20)
+    table.add_column("Description")
+    for entry in agent.tool_registry.describe():
+        table.add_row(entry["name"], entry["description"] or "-")
+    console.print(table)
+    for module, error in (agent.tool_registry.load_errors or {}).items():
+        console.print(f"[yellow]Skipped {module}: {error}[/yellow]")
     console.print()
 
 def main():
@@ -56,7 +90,7 @@ def main():
         "[bold cyan]OmniAssist[/bold cyan]\n"
         "[italic]Operationalized Multi-Agent Networked Intelligence & "
         "Autonomous System Services Integration Toolkit — the CLI of OmniAssist, "
-        "sister agent of OmniAssist GUI (v2026.6 \"Dirt Cake\")[/italic]",
+        "sister agent of OmniAssist GUI (v2026.7 \"Eton Mess\")[/italic]",
         border_style="cyan"
     ))
     console.print("[dim]Type '/help' for commands or 'exit', 'quit', 'q' to terminate session.[/dim]\n")
@@ -89,9 +123,17 @@ def main():
                 if command == "help":
                     show_help()
                     continue
-                else:
-                    console.print(f"[yellow]Unknown command: /{command}. Type '/help' for available commands.[/yellow]\n")
+                if command == "memory":
+                    show_memory(agent)
                     continue
+                if command == "tools":
+                    show_tools(agent)
+                    continue
+                console.print(
+                    f"[yellow]Unknown command: /{command}. "
+                    "Type '/help' for available commands.[/yellow]\n"
+                )
+                continue
 
             response = ""
             for event in agent.run_stream(user_input):

@@ -6,6 +6,7 @@ Endpoints:
   POST /api/auth/totp         exchange a 6-digit TOTP code for a session
   GET  /api/health            runtime status and model chain
   GET  /api/tools             registered tools and their parameters
+  GET  /api/memory            long-term memory backend, path, and recent notes
   GET  /api/sessions          stored conversations
   GET  /api/sessions/{id}     one stored conversation
   DEL  /api/sessions/{id}     delete a stored conversation
@@ -36,7 +37,7 @@ from core.auth import build_manager_from_env
 from memory.session import SessionPersistence
 
 WEB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "web")
-VERSION = 'v2026.6 "Dirt Cake"'
+VERSION = 'v2026.7 "Eton Mess"'
 
 # The agent can run shell commands and write files, so the API is not safe to
 # expose unauthenticated. The active mode is chosen by the launch flag
@@ -156,12 +157,31 @@ def health():
         "max_iterations": agent.max_iterations,
         "tools": len(agent.tool_registry.tools),
         "tool_load_errors": agent.tool_registry.load_errors,
+        "memory_backend": agent.memory.backend,
+        "memory_documents": len(agent.memory),
     }
 
 
 @app.get("/api/tools")
 def list_tools():
     return {"tools": get_agent("__health__").tool_registry.describe()}
+
+
+@app.get("/api/memory", dependencies=[Depends(require_token)])
+def memory_info():
+    """Reports the long-term memory backend and the most recent notes."""
+    agent = get_agent("__health__")
+    recent = agent.memory.recent(5)
+    return {
+        "backend": agent.memory.backend,
+        "storage_path": agent.memory.storage_path,
+        "documents": len(agent.memory),
+        "enabled": agent.memory_enabled,
+        "recent": [
+            {"doc_id": r["doc_id"], "text": r["text"][:400], "metadata": r["metadata"]}
+            for r in recent
+        ],
+    }
 
 
 @app.get("/api/sessions", dependencies=[Depends(require_token)])

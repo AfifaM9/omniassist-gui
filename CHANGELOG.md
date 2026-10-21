@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 and this project adheres to [Calendar Versioning](https://calver.org/).
 
+## [v2026.7-eton-mess] - 2026-10-21
+
+*Release "v2026.7 \"Eton Mess\"".*
+
+### Added
+- **OCR tooling** (`mcp_tools/ocr_tool.py`): `ocr_image`, `ocr_pdf`, and `ocr_languages`, backed by the host Tesseract binary and invoked as a subprocess so no Python binding is required. Handles images, multi-page PDFs (via `pdftoppm`), language-pack validation, and blank/unreadable inputs. Ported from the sister CLI project's v2026.7 release.
+- **Long-term semantic memory** (`memory/vector_store.py`): `vector_store.py` was a stub returning `"Mock semantic result for query: ..."`. It is now a persisted vector index with `add_document`, `search`, `get_document`, `recent`, `save`, `load`, and `clear`. Uses `sentence-transformers` when available and falls back to a deterministic hashing embedder otherwise; vectors are recomputed automatically when the backend changes.
+- Agent memory integration: completed turns are stored and relevant notes are recalled into the system prompt. New `recall()` and `remember()` methods, `OMNIASSIST_MEMORY_DIR` to relocate storage, and `last_tool_log` exposing the tool calls a run made.
+- `/memory` and `/tools` commands in the deprecated in-repo CLI.
+- `GET /api/memory` endpoint reporting the memory backend, storage path, document count, and recent notes; `/api/health` now reports `memory_backend` and `memory_documents`.
+- Test suites `tests/test_ocr_tool.py` and `tests/test_memory.py`, plus memory-integration and OCR-reachability coverage in `tests/test_agent_loop.py` (163 tests total, up from 115).
+
+### Changed
+- Version bumped to **v2026.7 "Eton Mess"** (changelog id `v2026.7-eton-mess`) across `config/config.yml`, `main.py`, `interfaces/cli.py`, `interfaces/api/server.py`, `mcp_tools/search_tools.py` (User-Agent), and `README.md`.
+- `core/agent.py` now recalls relevant memory before the first model call and persists each completed turn, on both the plain-answer and iteration-cap exit paths.
+
 ## [v2026.6-dirt-cake] - 2026-10-19
 
 *Release "v2026.6 \"Dirt Cake\"".*
@@ -102,6 +118,7 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 - Documented that `mcp_tools/shell_tool.py` is a denylist and not a sandbox. It is bypassable via path traversal (`rm -rf /opt/../etc`), trailing slashes, unexpanded variables (`$HOME`), long flags (`--recursive --force`), command chaining, and `find / -delete`. The README and Security section now state this plainly rather than describing the tooling as sandboxed.
 - Added optional token auth to the web API, which exposes shell-executing tools over HTTP for the first time.
 
+[v2026.7-eton-mess]: https://github.com/AfifaM9/omniassist-gui/tree/v2026.7-eton-mess
 [v2026.6-dirt-cake]: https://github.com/AfifaM9/omniassist-gui/tree/v2026.6-dirt-cake
 [v2026.5-cake]: https://github.com/AfifaM9/omniassist-gui/tree/v2026.5-cake
 [v2026.4-deprecation]: https://github.com/AfifaM9/omniassist-gui/tree/v2026.4-deprecation

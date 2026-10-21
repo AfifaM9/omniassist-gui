@@ -1,10 +1,13 @@
 """Tests for the agent loop: tool execution and tool-result feedback."""
 
+import os
 import unittest
+from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from core.agent import OmniAssist
 from core.events import AgentEvent
+from memory.vector_store import HashingEmbedder, VectorStore
 
 
 class _Call:
@@ -36,7 +39,7 @@ class _ScriptedClient:
         self.models = _ScriptedModels(responses)
 
 
-def _make_agent(responses):
+def _make_agent(responses, memory_dir=None):
     agent = object.__new__(OmniAssist)
     agent.model_id = "test-model"
     agent.fallback_models = []
@@ -53,6 +56,15 @@ def _make_agent(responses):
     agent.reasoning = CognitiveEngine()
     agent.tool_registry = MCPToolRegistry()
     agent.router = TaskRouter(agent.tool_registry)
+
+    # Long-term memory must exist before run_stream calls recall()/_finish_turn().
+    agent.memory_enabled = True
+    agent.memory_dir = memory_dir or "/tmp"
+    agent.memory = VectorStore(
+        storage_path=os.path.join(agent.memory_dir, "vector_index.json"),
+        embedder=HashingEmbedder(),
+    )
+    agent.last_tool_log = []
     return agent
 
 
@@ -140,12 +152,104 @@ class TestAgentLoop(unittest.TestCase):
         self.assertIn("Agent Runtime Exception Handled", events[-1].content)
 
     def test_offline_agent_runs_end_to_end(self):
-        with patch.dict("os.environ", {}, clear=True):
-            agent = OmniAssist()
-        self.assertTrue(agent.offline)
-        events = list(agent.run_stream("hello"))
-        self.assertEqual(events[-1].type, "final")
-        self.assertIn("Offline mode", events[-1].content)
+        # Point memory at a temp dir so the suite never writes into ./data.
+        with TemporaryDirectory() as tmp:
+            with patch.dict("os.environ", {"OMNIASSIST_MEMORY_DIR": tmp}, clear=True):
+                agent = OmniAssist()
+            self.assertTrue(agent.offline)
+            events = list(agent.run_stream("hello"))
+            self.assertEqual(events[-1].type, "final")
+            self.assertIn("Offline mode", events[-1].content)
+            self.assertTrue(os.path.exists(os.path.join(tmp, "vector_index.json")))
+
+
+class TestMemoryIntegration(unittest.TestCase):
+    """Long-term memory must be written by the loop and recalled into the prompt."""
+
+    def setUp(self):
+        self._tmp = TemporaryDirectory()
+        self.tmp = self._tmp.name
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def test_completed_turn_is_persisted(self):
+        agent = _make_agent([_Response(text="the answer is 42")], memory_dir=self.tmp)
+        list(agent.run_stream("what is the answer?"))
+        self.assertEqual(len(agent.memory), 1)
+        note = agent.memory.get_document("turn-0")["text"]
+        self.assertIn("what is the answer?", note)
+        self.assertIn("the answer is 42", note)
+
+    def test_turn_index_starts_at_zero(self):
+        agent = _make_agent([_Response(text="one"), _Response(text="two")], memory_dir=self.tmp)
+        list(agent.run_stream("first"))
+        list(agent.run_stream("second"))
+        self.assertIsNotNone(agent.memory.get_document("turn-0"))
+        self.assertIsNotNone(agent.memory.get_document("turn-1"))
+
+    def test_memory_is_persisted_to_disk(self):
+        agent = _make_agent([_Response(text="stored")], memory_dir=self.tmp)
+        list(agent.run_stream("remember this"))
+        self.assertTrue(os.path.exists(os.path.join(self.tmp, "vector_index.json")))
+
+    def test_prior_memory_is_recalled_into_the_system_prompt(self):
+        agent = _make_agent([_Response(text="ok")], memory_dir=self.tmp)
+        agent.remember("note-1", "the deployment password rotates every friday")
+        self.assertEqual(agent.recall("deployment password rotation", top_k=1)[0]["doc_id"], "note-1")
+
+        captured = {}
+
+        def capture(plan, memories=None):
+            captured["memories"] = memories
+            return "system"
+
+        agent._build_config = capture
+        list(agent.run_stream("when does the password rotate?"))
+        self.assertTrue(captured["memories"])
+        self.assertEqual(captured["memories"][0]["doc_id"], "note-1")
+
+    def test_no_recall_when_memory_disabled(self):
+        agent = _make_agent([_Response(text="ok")], memory_dir=self.tmp)
+        agent.memory_enabled = False
+        agent.remember("note-1", "should not be stored")
+        self.assertEqual(len(agent.memory), 0)
+        self.assertEqual(agent.recall("anything"), [])
+
+    def test_tool_usage_is_recorded_in_the_note(self):
+        agent = _make_agent([
+            _Response(function_calls=[_Call("basic_calculate", {"expression": "6 * 7"})]),
+            _Response(text="42"),
+        ], memory_dir=self.tmp)
+        list(agent.run_stream("what is 6*7"))
+        note = agent.memory.get_document("turn-0")["text"]
+        self.assertIn("basic_calculate", note)
+        self.assertEqual(agent.memory.get_document("turn-0")["metadata"]["tools"], "basic_calculate")
+
+    def test_last_tool_log_is_exposed_after_a_run(self):
+        agent = _make_agent([
+            _Response(function_calls=[_Call("basic_calculate", {"expression": "6 * 7"})]),
+            _Response(text="42"),
+        ], memory_dir=self.tmp)
+        list(agent.run_stream("what is 6*7"))
+        self.assertEqual(agent.last_tool_log[0]["tool"], "basic_calculate")
+        self.assertEqual(agent.last_tool_log[0]["result"], "42")
+
+    def test_real_ocr_tool_is_reachable_through_the_loop(self):
+        """End-to-end: a function call to ocr_image reaches the real tool."""
+        agent = _make_agent([
+            _Response(function_calls=[_Call("ocr_image", {"file_path": "/definitely/missing.png"})]),
+            _Response(text="handled"),
+        ], memory_dir=self.tmp)
+        list(agent.run_stream("read that image"))
+        result = agent.last_tool_log[0]["result"]
+        # Which error surfaces depends on the host: a missing input file, or a
+        # missing tesseract binary on CI images. Either proves the call reached
+        # the real tool instead of the old no-op stub.
+        self.assertTrue(
+            "file not found" in result or "OCR unavailable" in result,
+            f"unexpected tool result: {result!r}",
+        )
 
 
 class TestAgentEvents(unittest.TestCase):

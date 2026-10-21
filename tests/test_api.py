@@ -16,8 +16,15 @@ class TestApi(unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         server.sessions = server.SessionPersistence(session_dir=self._tmp.name)
         server._agents.clear()
-        # Force offline mode so no network calls are made.
-        self._env = patch.dict(os.environ, {}, clear=True)
+        # Force offline mode so no network calls are made, and keep the agents'
+        # long-term memory inside the temp dir instead of the repo's ./data.
+        # A separate subdirectory: SessionPersistence.list_sessions() globs
+        # *.json, so a memory index beside the sessions would show up as one.
+        self._env = patch.dict(
+            os.environ,
+            {"OMNIASSIST_MEMORY_DIR": os.path.join(self._tmp.name, "memory")},
+            clear=True,
+        )
         self._env.start()
         self.client = TestClient(server.app)
 
@@ -31,6 +38,8 @@ class TestApi(unittest.TestCase):
         self.assertTrue(data["offline"])
         self.assertGreater(data["tools"], 0)
         self.assertEqual(data["model"], "gemini-3.6-flash-lite")
+        self.assertIn(data["memory_backend"], ("hashing", "sentence-transformers"))
+        self.assertGreaterEqual(data["memory_documents"], 0)
 
     def test_no_token_configured_means_open_access(self):
         """With no OMNIASSIST_API_TOKEN set, local use needs no credentials."""
@@ -42,6 +51,26 @@ class TestApi(unittest.TestCase):
         self.assertIn("run_shell", names)
         self.assertIn("basic_calculate", names)
         self.assertNotIn("DDGS", names)
+
+    def test_ocr_tools_are_registered(self):
+        names = {t["name"] for t in self.client.get("/api/tools").json()["tools"]}
+        self.assertIn("ocr_image", names)
+        self.assertIn("ocr_pdf", names)
+        self.assertIn("ocr_languages", names)
+
+    def test_memory_endpoint_reports_backend_and_path(self):
+        data = self.client.get("/api/memory").json()
+        self.assertIn(data["backend"], ("hashing", "sentence-transformers"))
+        self.assertTrue(data["enabled"])
+        self.assertIn("vector_index.json", data["storage_path"])
+        self.assertIsInstance(data["recent"], list)
+
+    def test_run_stores_the_turn_in_memory(self):
+        """A completed run must leave a recallable note behind."""
+        self.client.post("/api/run", json={"prompt": "what is 6*7"})
+        data = self.client.get("/api/memory").json()
+        self.assertGreaterEqual(data["documents"], 1)
+        self.assertTrue(any("what is 6*7" in r["text"] for r in data["recent"]))
 
     def test_run_endpoint_returns_answer_and_events(self):
         res = self.client.post("/api/run", json={"prompt": "hello"})
@@ -113,7 +142,12 @@ class TestAuth(unittest.TestCase):
         server._agents.clear()
         self._prev_auth = server.auth
         server.auth = AuthManager(mode=AuthMode.TOKEN, api_token="secret-token")
-        self._env = patch.dict(os.environ, {}, clear=True)
+        # Keep agent long-term memory out of the repo's ./data directory.
+        self._env = patch.dict(
+            os.environ,
+            {"OMNIASSIST_MEMORY_DIR": os.path.join(self._tmp.name, "memory")},
+            clear=True,
+        )
         self._env.start()
         self.client = TestClient(server.app)
 
