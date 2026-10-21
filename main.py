@@ -1,6 +1,6 @@
 """
 ==============================================================================
- OMNIASSIST GUI ENTRY POINT SCRIPT (v2026.6 "Dirt Cake")
+ OMNIASSIST GUI ENTRY POINT SCRIPT (v2026.7 "Eton Mess")
 ==============================================================================
  The browser GUI is the default interface. The legacy in-repo terminal CLI is
  DEPRECATED — the standalone OmniAssist project already provides the CLI

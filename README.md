@@ -8,9 +8,9 @@
 ![Lint](https://github.com/AfifaM9/omniassist-gui/actions/workflows/lint.yml/badge.svg)
 ![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Version](https://img.shields.io/badge/version-2026.6_Dirt_Cake-blue)
+![Version](https://img.shields.io/badge/version-2026.7_Eton_Mess-blue)
 
-Operationalized Multi-Agent Networked Intelligence & Autonomous System Services Integration Toolkit Graphical User Interface (v2026.6 "Dirt Cake"). Its sister agent is **OmniAssist**, whose CLI is exposed through `interfaces/cli.py`.
+Operationalized Multi-Agent Networked Intelligence & Autonomous System Services Integration Toolkit Graphical User Interface (v2026.7 "Eton Mess"). Its sister agent is **OmniAssist**, whose CLI is exposed through `interfaces/cli.py`.
 
 ---
 
@@ -48,6 +48,8 @@ The agent runs a real multi-step loop: it plans, calls tools, observes the resul
 - **Robust Error Handling:** Intercepts runtime exceptions, LLM formatting issues, and tool-registry mismatches gracefully to keep the session alive.
 - **Model Fallback Chain:** Tries the primary model first, then automatically steps down a configured list of fallbacks when a model is unavailable.
 - **Offline Mode:** With no API key configured, the CLI, Web UI, and test suite still run end-to-end against a deterministic stub.
+- **Long-Term Semantic Memory:** Completed turns are embedded into a persisted vector index and relevant notes are recalled into the system prompt on later runs. Falls back to a deterministic hashing embedder when `sentence-transformers` is not installed.
+- **OCR Tooling:** `ocr_image`, `ocr_pdf`, and `ocr_languages` read text out of images and PDFs through the host Tesseract binary.
 - **Session Persistence:** Conversations are stored on disk and can be listed, reopened, and deleted from the Web UI.
 - **Secure Environment Management:** Strictly isolates configuration credentials via `.env` files and `.gitignore` safety guards, with optional bearer-token auth on the web API.
 
@@ -101,12 +103,13 @@ omniassist
 ├── memory/                  # Multi-tiered memory architecture
 │   ├── conversation.py      # Working memory & short-term message buffer
 │   ├── session.py           # Session persistence across agent reboots
-│   └── vector_store.py      # Long-term semantic memory (RAG vector index)
+│   └── vector_store.py      # Long-term semantic memory (persisted RAG vector index)
 ├── mcp_tools/               # Model Context Protocol (MCP) tool integrations
 │   ├── basic_calc.py        # Arithmetic and standard math tool helper
 │   ├── code_runner.py       # Sandboxed code execution environment
 │   ├── ddgs_search.py       # DuckDuckGo web search integration wrapper via `ddgs`
 │   ├── file_tools.py        # Filesystem interface (I/O, directory traversal, file editing)
+│   ├── ocr_tool.py          # Tesseract-backed image/PDF text extraction
 │   ├── python_tool.py       # Tool interface for evaluating Python snippets
 │   ├── registry.py          # Fault-tolerant tool discovery and loader
 │   ├── robocalc.py          # Complex calculator (cmath)
@@ -125,6 +128,8 @@ omniassist
 │   ├── test_core.py         # Unit tests for initialization, config, and offline mode
 │   ├── test_fallback_chain.py # Model fallback ordering and failure handling
 │   ├── test_mcp_tools.py    # Tool registry discovery and execution tests
+│   ├── test_memory.py       # Vector store and long-term memory tests
+│   ├── test_ocr_tool.py     # Tesseract OCR tool tests (skipped without tesseract)
 │   └── test_shell_tool.py   # Security tests for shell command blocking
 ├── requirements.txt         # Runtime dependencies
 ├── requirements-dev.txt     # Dev dependencies (includes -r requirements.txt)
@@ -137,6 +142,8 @@ omniassist
 
 - **Python:** Version 3.11 or higher.
 - **API Key:** A valid Google Gemini API key (`GEMINI_API_KEY` or `GOOGLE_API_KEY`). Optional — without one the app runs in offline mode.
+- **Tesseract (optional):** the OCR tool shells out to `tesseract` and, for PDFs, `pdftoppm` (poppler-utils). Without them the OCR tools return a readable "OCR unavailable" message and the rest of the agent is unaffected.
+- **sentence-transformers (optional):** when installed, long-term memory embeds with `all-MiniLM-L6-v2`; otherwise it falls back to a deterministic hashing embedder.
 
 ---
 
@@ -271,8 +278,9 @@ OMNIASSIST_PORT=8000
 | `GET` | `/api/auth` | Auth mode and whether a credential is required |
 | `POST` | `/api/auth/token` | Exchange the GUI Omni token for a session token |
 | `POST` | `/api/auth/totp` | Exchange a 6-digit TOTP code for a session token |
-| `GET` | `/api/health` | Status, active model, fallback chain, tool count |
+| `GET` | `/api/health` | Status, active model, fallback chain, tool count, memory backend |
 | `GET` | `/api/tools` | Registered tools with parameter metadata |
+| `GET` | `/api/memory` | Memory backend, storage path, document count, recent notes |
 | `GET` | `/api/sessions` | Stored conversations, newest first |
 | `GET` | `/api/sessions/{id}` | One stored conversation with its event trace |
 | `DELETE` | `/api/sessions/{id}` | Delete a stored conversation |

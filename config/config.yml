@@ -1,6 +1,6 @@
 app:
   name: "OmniAssist"
-  version: "v2026.6 \"Dirt Cake\""
+  version: "v2026.7 \"Eton Mess\""
   description: "Operationalized Multi-Agent Networked Intelligence & Autonomous System Services Integration Toolkit"
 
 models:
