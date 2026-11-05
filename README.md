@@ -8,9 +8,9 @@
 ![Lint](https://github.com/AfifaM9/omniassist-gui/actions/workflows/lint.yml/badge.svg)
 ![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Version](https://img.shields.io/badge/version-2026.7_Eton_Mess-blue)
+![Version](https://img.shields.io/badge/version-2026.8_French_Macaron-blue)
 
-Operationalized Multi-Agent Networked Intelligence & Autonomous System Services Integration Toolkit Graphical User Interface (v2026.7 "Eton Mess"). Its sister agent is **OmniAssist**, whose CLI is exposed through `interfaces/cli.py`.
+Operationalized Multi-Agent Networked Intelligence & Autonomous System Services Integration Toolkit Graphical User Interface (v2026.8 "French Macaron"). Its sister agent is **OmniAssist**, whose CLI is exposed through `interfaces/cli.py`.
 
 ---
 
@@ -42,7 +42,7 @@ The agent runs a real multi-step loop: it plans, calls tools, observes the resul
 
 - **Autonomous Tool Execution:** Dynamically interprets user intent, matches prompts against registered tools, and executes native Python or system commands.
 - **True Multi-Step Loop:** Tool results are fed back to the model as structured `function_response` turns, so the agent can chain calls, react to errors, and adapt before answering.
-- **Web UI with Omni's Computer:** Watch each planning step, tool call, and tool result stream into the browser over a WebSocket as it happens.
+- **Web UI with Omni's Computer:** Watch each planning step, tool call, and tool result stream into the browser over a WebSocket as it happens, rendered as a clean execution timeline with a live status strip instead of raw log text.
 - **Browser GUI (default):** A no-build single-page app served by the FastAPI backend, with WebSocket streaming, a session sidebar, and the **Omni's Computer** / **Omni's MCP Toolbox** inspectors.
 - **Interactive CLI (deprecated):** A `rich`/`readline` terminal loop remains at `interfaces/cli.py` behind `python main.py --cli`, kept only for backward compatibility — the standalone OmniAssist project provides the CLI.
 - **Robust Error Handling:** Intercepts runtime exceptions, LLM formatting issues, and tool-registry mismatches gracefully to keep the session alive.
@@ -98,6 +98,7 @@ omniassist
 │   ├── web/                 # Single-page web UI (no build step)
 │   │   ├── index.html       # Chat shell, session sidebar, Omni's Computer / Omni's MCP Toolbox inspector
 │   │   ├── styles.css       # Dark theme styling
+│   │   ├── favicon.ico      # Brand favicon (OA mark, accent gradient)
 │   │   └── app.js           # Streaming client, Omni's Computer rendering, session management
 │   └── cli.py               # DEPRECATED interactive terminal interface (kept for compatibility)
 ├── memory/                  # Multi-tiered memory architecture
@@ -265,7 +266,7 @@ OMNIASSIST_PORT=8000
 ```
 
 **Interface features:**
-- Streaming replies over a WebSocket, with a live feed in **Omni's Computer** of every plan, tool call, and tool result.
+- Streaming replies over a WebSocket, with **Omni's Computer** rendering each run as a timeline: a status strip (state, step count, tool count, live elapsed timer) above connected cards for every plan, tool call, tool result, final answer, and error. Plans are split into a strategy chip and a readable objective; tool calls show the tool name with pretty-printed JSON arguments.
 - A session sidebar listing stored conversations (click to reopen, `×` to delete).
 - **Omni's MCP Toolbox**, showing every registered tool, its description, and its parameters.
 - A status indicator showing the active model and whether the app is in offline mode.

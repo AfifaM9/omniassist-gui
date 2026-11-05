@@ -90,7 +90,7 @@ def main():
         "[bold cyan]OmniAssist[/bold cyan]\n"
         "[italic]Operationalized Multi-Agent Networked Intelligence & "
         "Autonomous System Services Integration Toolkit — the CLI of OmniAssist, "
-        "sister agent of OmniAssist GUI (v2026.7 \"Eton Mess\")[/italic]",
+        "sister agent of OmniAssist GUI (v2026.8 \"French Macaron\")[/italic]",
         border_style="cyan"
     ))
     console.print("[dim]Type '/help' for commands or 'exit', 'quit', 'q' to terminate session.[/dim]\n")

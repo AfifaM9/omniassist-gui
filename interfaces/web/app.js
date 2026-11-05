@@ -94,7 +94,7 @@ function addThinking() {
   return wrap;
 }
 
-/* ---------------- agent trace ---------------- */
+/* ---------------- Omni's Computer: run timeline ---------------- */
 
 const STEP_LABELS = {
   plan: "Plan",
@@ -104,17 +104,136 @@ const STEP_LABELS = {
   error: "Error",
 };
 
-function addTraceStep(type, content) {
+const STEP_ICONS = {
+  plan: "◈",
+  tool_call: "➜",
+  tool_result: "✓",
+  final: "★",
+  error: "!",
+};
+
+/* Tracks the run the status strip describes. */
+const RUN_LABELS = { idle: "Idle", working: "Working", done: "Complete", error: "Failed" };
+let run = { state: "idle", steps: 0, tools: 0, startedAt: 0, timed: false, timer: null };
+
+function formatElapsed(ms) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const m = String(Math.floor(total / 60)).padStart(2, "0");
+  const s = String(total % 60).padStart(2, "0");
+  return `${m}:${s}`;
+}
+
+function paintRunStrip() {
+  const strip = el("run-strip");
+  if (!strip) return;
+  strip.dataset.status = run.state;
+  el("run-state-text").textContent = RUN_LABELS[run.state];
+  el("run-steps").textContent = run.steps;
+  el("run-tools").textContent = run.tools;
+  el("run-elapsed").textContent = run.timed ? formatElapsed(Date.now() - run.startedAt) : "—";
+}
+
+function beginRun() {
+  clearInterval(run.timer);
+  run = { state: "working", steps: 0, tools: 0, startedAt: Date.now(), timed: true, timer: null };
+  run.timer = setInterval(paintRunStrip, 1000);
+  paintRunStrip();
+}
+
+function endRun(state) {
+  if (run.state !== "working") return;
+  clearInterval(run.timer);
+  run.timer = null;
+  run.state = state;
+  paintRunStrip();
+}
+
+/* A stored run has no timing data, so the strip shows counts and a frozen state. */
+function summarizeRun(events) {
+  clearInterval(run.timer);
+  run.timer = null;
+  run.timed = false;
+  run.steps = events.filter((e) => ["plan", "tool_call", "tool_result"].includes(e.type)).length;
+  run.tools = events.filter((e) => e.type === "tool_call").length;
+  run.state = events.length ? (events.some((e) => e.type === "error") ? "error" : "done") : "idle";
+  paintRunStrip();
+}
+
+function prettyJson(value) {
+  try {
+    return JSON.stringify(typeof value === "string" ? JSON.parse(value) : value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
+
+/* The plan arrives as "[CognitiveEngine] Strategy: ReAct | Deconstructing objective: '...'".
+   Split it into a strategy chip and a clean objective, keeping the raw string if the
+   format ever changes. */
+function parsePlan(content) {
+  const match = /Strategy:\s*([^|]+?)\s*\|\s*Deconstructing objective:\s*['"]?(.*?)['"]?\s*$/.exec(content);
+  if (!match) return { strategy: "ReAct", objective: content };
+  return { strategy: match[1].trim(), objective: match[2].trim() };
+}
+
+function buildStep(type, content, extra = {}) {
   const step = document.createElement("div");
-  step.className = `trace-step ${type}`;
-  step.innerHTML = `<div class="step-title">${STEP_LABELS[type] || type}</div>
-                    <div class="step-body"></div>`;
-  step.querySelector(".step-body").textContent = content;
-  traceBox.appendChild(step);
+  step.className = `tl-step ${type}`;
+  const title = document.createElement("div");
+  title.className = "tl-title";
+  const icon = document.createElement("span");
+  icon.className = "tl-icon";
+  icon.textContent = STEP_ICONS[type] || "•";
+  const label = document.createElement("span");
+  label.textContent = STEP_LABELS[type] || type;
+  title.append(icon, label);
+  step.appendChild(title);
+
+  const body = document.createElement("div");
+  body.className = "tl-body";
+
+  if (type === "plan") {
+    const { strategy, objective } = parsePlan(content);
+    const chip = document.createElement("span");
+    chip.className = "tl-chip";
+    chip.textContent = strategy;
+    const text = document.createElement("span");
+    text.className = "tl-objective";
+    text.textContent = objective;
+    body.append(chip, text);
+  } else if (type === "tool_call") {
+    const name = document.createElement("span");
+    name.className = "tl-chip tool";
+    name.textContent = extra.tool || "tool";
+    body.appendChild(name);
+    const args = document.createElement("pre");
+    args.className = "tl-json";
+    args.textContent = prettyJson(extra.args ?? {});
+    body.appendChild(args);
+  } else {
+    const isJson = type === "tool_result" && /^\s*[[{]/.test(String(content));
+    const pre = document.createElement("pre");
+    pre.className = `tl-text${isJson ? " tl-json" : ""}`;
+    pre.textContent = isJson ? prettyJson(content) : String(content);
+    body.appendChild(pre);
+  }
+
+  step.appendChild(body);
+  return step;
+}
+
+function addTraceStep(type, content, extra = {}) {
+  traceBox.appendChild(buildStep(type, content, extra));
+  if (["plan", "tool_call", "tool_result"].includes(type)) run.steps += 1;
+  if (type === "tool_call") run.tools += 1;
+  paintRunStrip();
   traceBox.scrollTop = traceBox.scrollHeight;
 }
 
 function resetTrace() {
+  clearInterval(run.timer);
+  run = { state: "idle", steps: 0, tools: 0, startedAt: 0, timed: false, timer: null };
+  paintRunStrip();
   traceBox.innerHTML = "";
   current = null;
 }
@@ -221,12 +340,17 @@ async function openSession(id) {
     sessionId = id;
     messages.innerHTML = "";
     resetTrace();
+    const replayed = [];
     (data.messages || []).forEach((m) => {
       addMessage(m.role, m.content, { error: m.role === "assistant" && /error/i.test(m.content.slice(0, 40)) });
       (m.events || []).forEach((ev) => {
-        if (ev.type !== "session" && ev.type !== "done" && ev.type !== "final") addTraceStep(ev.type, ev.content);
+        if (["plan", "tool_call", "tool_result", "error"].includes(ev.type)) {
+          replayed.push(ev);
+          addTraceStep(ev.type, ev.content, { tool: ev.tool, args: ev.args });
+        }
       });
     });
+    summarizeRun(replayed);
     el("chat-title").textContent = data.title || (data.messages?.[0]?.content || "Conversation").slice(0, 48);
     refreshSessions();
   } catch { /* ignore */ }
@@ -337,6 +461,7 @@ function connect() {
     if (ev.type === "done") {
       streaming = false;
       sendBtn.disabled = false;
+      endRun(run.state === "error" ? "error" : "done");
       if (current && !current.body.innerHTML.trim()) {
         current.body.innerHTML = renderMarkdown("(no output)");
       }
@@ -350,11 +475,11 @@ function connect() {
       return;
     }
     if (ev.type === "tool_call") {
-      addTraceStep("tool_call", `${ev.tool} ${JSON.stringify(ev.args)}`);
+      addTraceStep("tool_call", ev.content, { tool: ev.tool, args: ev.args });
       return;
     }
     if (ev.type === "tool_result") {
-      addTraceStep("tool_result", ev.content);
+      addTraceStep("tool_result", ev.content, { tool: ev.tool });
       return;
     }
     if (ev.type === "final") {
@@ -366,6 +491,7 @@ function connect() {
       if (current) current.body.innerHTML = renderMarkdown(ev.content);
       current?.wrap.classList.add("error");
       addTraceStep("error", ev.content);
+      endRun("error");
     }
   };
 
@@ -382,6 +508,7 @@ function send(prompt) {
   const wrap = addThinking();
   current = { body: wrap.querySelector(".content"), wrap };
   resetTraceKeepCurrent();
+  beginRun();
   streaming = true;
   sendBtn.disabled = true;
 
@@ -399,11 +526,16 @@ function send(prompt) {
       .then((d) => {
         sessionId = d.session_id;
         current.body.innerHTML = renderMarkdown(d.response);
-        d.events.forEach((ev) => {
-          if (!["session", "done", "final"].includes(ev.type)) addTraceStep(ev.type, ev.content);
-        });
+        const rendered = d.events.filter((ev) =>
+          ["plan", "tool_call", "tool_result", "error"].includes(ev.type)
+        );
+        rendered.forEach((ev) => addTraceStep(ev.type, ev.content, { tool: ev.tool, args: ev.args }));
+        endRun(rendered.some((ev) => ev.type === "error") ? "error" : "done");
       })
-      .catch((e) => { current.body.innerHTML = renderMarkdown(`Request failed: ${e.message}`); })
+      .catch((e) => {
+        current.body.innerHTML = renderMarkdown(`Request failed: ${e.message}`);
+        endRun("error");
+      })
       .finally(() => { streaming = false; sendBtn.disabled = false; refreshSessions(); });
   }
 }
