@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 and this project adheres to [Calendar Versioning](https://calver.org/).
 
+## [v2026.8-french-macaron] - 2026-11-05
+
+*Release "v2026.8 \"French Macaron\"".*
+
+### Added
+- **Omni's Computer status strip** (`interfaces/web/`): the execution inspector now leads with a sticky header showing the run state (idle, working, done, error), the number of steps, the number of tool calls, and a live elapsed timer that ticks while the agent works and freezes when it finishes.
+- **Timeline rendering in Omni's Computer.** The panel is no longer a column of raw text. Each plan, tool call, tool result, final answer, and error is a card on a connected rail with a per-type glyph, an uppercase label, and an entry animation.
+- **Parsed plan cards.** The raw `[CognitiveEngine] Strategy: ReAct | Deconstructing objective: '...'` string is split into a strategy chip and a readable objective, with the original string kept as a fallback if the format ever changes.
+- **Structured tool cards.** Tool calls render the tool name as a chip with the arguments pretty-printed as JSON; tool results are pretty-printed when they parse as JSON and scroll when long.
+- **Brand favicon** (`interfaces/web/favicon.ico`): a multi-resolution ICO (16–256 px) of the OA mark on the accent gradient, replacing the inline emoji data-URI in `index.html`.
+
+### Changed
+- Version bumped to **v2026.8 "French Macaron"** (changelog id `v2026.8-french-macaron`) across `config/config.yml`, `main.py`, `interfaces/cli.py`, `interfaces/api/server.py`, `mcp_tools/search_tools.py` (User-Agent), `interfaces/web/index.html` (sidebar fallback), and `README.md`.
+- `interfaces/web/app.js` and `interfaces/web/styles.css` reworked the Omni's Computer panel: the old `trace-step` list is replaced by the status strip plus the timeline cards. Reopened sessions and the blocking `/api/run` fallback feed the same renderer, so stored runs replay with the new styling.
+
 ## [v2026.7-eton-mess] - 2026-10-21
 
 *Release "v2026.7 \"Eton Mess\"".*
@@ -118,6 +133,7 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 - Documented that `mcp_tools/shell_tool.py` is a denylist and not a sandbox. It is bypassable via path traversal (`rm -rf /opt/../etc`), trailing slashes, unexpanded variables (`$HOME`), long flags (`--recursive --force`), command chaining, and `find / -delete`. The README and Security section now state this plainly rather than describing the tooling as sandboxed.
 - Added optional token auth to the web API, which exposes shell-executing tools over HTTP for the first time.
 
+[v2026.8-french-macaron]: https://github.com/AfifaM9/omniassist-gui/tree/v2026.8-french-macaron
 [v2026.7-eton-mess]: https://github.com/AfifaM9/omniassist-gui/tree/v2026.7-eton-mess
 [v2026.6-dirt-cake]: https://github.com/AfifaM9/omniassist-gui/tree/v2026.6-dirt-cake
 [v2026.5-cake]: https://github.com/AfifaM9/omniassist-gui/tree/v2026.5-cake

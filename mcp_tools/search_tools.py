@@ -7,7 +7,7 @@ def api_lookup(endpoint: str) -> str:
     try:
         req = urllib.request.Request(
             endpoint,
-            headers={"User-Agent": "OmniAssist-Agent/2026.7 \"Eton Mess\""}
+            headers={"User-Agent": "OmniAssist-Agent/2026.8 \"French Macaron\""}
         )
         with urllib.request.urlopen(req, timeout=10) as response:
             data = response.read().decode("utf-8")

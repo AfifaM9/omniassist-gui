@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>OmniAssist GUI</title>
 <link rel="stylesheet" href="/static/styles.css" />
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🛰️</text></svg>" />
+<link rel="icon" type="image/x-icon" href="/static/favicon.ico" />
 </head>
 <body>
   <div class="app">
@@ -14,7 +14,7 @@
         <span class="brand-mark">OA</span>
         <div>
           <h1>OmniAssist GUI</h1>
-          <p class="version" id="version">v2026.6 "Dirt Cake"</p>
+          <p class="version" id="version">v2026.8 "French Macaron"</p>
         </div>
       </div>
 
@@ -68,6 +68,14 @@
         <button class="tab" data-tab="tools">Omni's MCP Toolbox</button>
       </div>
       <section class="tab-panel active" data-panel="trace">
+        <div class="run-strip" id="run-strip" data-status="idle">
+          <span class="run-state"><i class="run-dot"></i><span id="run-state-text">Idle</span></span>
+          <span class="run-metrics">
+            <span class="run-metric"><b id="run-steps">0</b> steps</span>
+            <span class="run-metric"><b id="run-tools">0</b> tools</span>
+            <span class="run-metric run-clock" id="run-elapsed">—</span>
+          </span>
+        </div>
         <div class="trace" id="trace"></div>
       </section>
       <section class="tab-panel" data-panel="tools">

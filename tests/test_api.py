@@ -116,8 +116,17 @@ class TestApi(unittest.TestCase):
         self.assertIn("OmniAssist", res.text)
 
     def test_static_assets_are_served(self):
-        for asset in ("/static/app.js", "/static/styles.css"):
+        for asset in ("/static/app.js", "/static/styles.css", "/static/favicon.ico"):
             self.assertEqual(self.client.get(asset).status_code, 200, asset)
+
+    def test_health_reports_the_current_release(self):
+        self.assertEqual(self.client.get("/api/health").json()["version"], 'v2026.8 "French Macaron"')
+
+    def test_ui_references_the_brand_favicon_and_run_strip(self):
+        html = self.client.get("/").text
+        self.assertIn('rel="icon"', html)
+        self.assertIn("/static/favicon.ico", html)
+        self.assertIn('id="run-strip"', html)
 
     def test_websocket_streams_events(self):
         with self.client.websocket_connect("/ws/run") as ws:
