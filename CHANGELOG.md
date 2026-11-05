@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 and this project adheres to [Calendar Versioning](https://calver.org/).
 
+## [Unreleased]
+
+### Changed
+- **Omni's Computer no longer shows raw JSON.** Tool calls render as a labelled field list (e.g. `command  ls -la`) and tool results render as readable values: key/value rows for objects, a table for arrays of records, and chips for arrays of scalars. Numbers are tinted with the accent. The underlying JSON is unchanged on the wire and remains available per card behind a collapsed **internal · raw payload** disclosure, so nothing is lost for debugging. Plain-text results render as-is with no disclosure.
+
 ## [v2026.8-french-macaron] - 2026-11-05
 
 *Release "v2026.8 \"French Macaron\"".*
