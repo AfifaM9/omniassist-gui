@@ -176,6 +176,126 @@ function parsePlan(content) {
   return { strategy: match[1].trim(), objective: match[2].trim() };
 }
 
+/* The raw payload is an implementation detail; the panel shows a readable view instead. */
+const MAX_ROWS = 50;
+
+function isPlainObject(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function parseJson(text) {
+  const trimmed = String(text).trim();
+  if (!/^[[{]/.test(trimmed)) return { ok: false };
+  try {
+    return { ok: true, value: JSON.parse(trimmed) };
+  } catch {
+    return { ok: false };
+  }
+}
+
+function formatScalar(value) {
+  if (value === null || value === undefined) return "—";
+  if (typeof value === "boolean") return value ? "yes" : "no";
+  return String(value);
+}
+
+function compact(value) {
+  return isPlainObject(value) || Array.isArray(value) ? JSON.stringify(value) : formatScalar(value);
+}
+
+function scalarNode(value) {
+  const span = document.createElement("span");
+  span.className = "tl-scalar" + (typeof value === "number" ? " num" : "");
+  span.textContent = formatScalar(value);
+  return span;
+}
+
+function chipRow(items) {
+  const wrap = document.createElement("div");
+  wrap.className = "tl-chips";
+  items.slice(0, MAX_ROWS).forEach((item) => {
+    const chip = document.createElement("span");
+    chip.className = "tl-val-chip";
+    chip.textContent = compact(item);
+    wrap.appendChild(chip);
+  });
+  if (items.length > MAX_ROWS) {
+    const more = document.createElement("span");
+    more.className = "tl-more";
+    more.textContent = `+${items.length - MAX_ROWS} more`;
+    wrap.appendChild(more);
+  }
+  return wrap;
+}
+
+function fieldList(obj, depth) {
+  const list = document.createElement("div");
+  list.className = "tl-fields";
+  Object.entries(obj).slice(0, MAX_ROWS).forEach(([key, value]) => {
+    const row = document.createElement("div");
+    row.className = "tl-field";
+    const label = document.createElement("span");
+    label.className = "tl-key";
+    label.textContent = key;
+    const slot = document.createElement("span");
+    slot.className = "tl-value";
+    slot.appendChild(renderValue(value, depth + 1));
+    row.append(label, slot);
+    list.appendChild(row);
+  });
+  return list;
+}
+
+function recordTable(rows) {
+  const keys = [...new Set(rows.flatMap((row) => Object.keys(row)))];
+  const table = document.createElement("table");
+  table.className = "tl-table";
+  const head = document.createElement("thead");
+  const headRow = document.createElement("tr");
+  keys.forEach((key) => {
+    const th = document.createElement("th");
+    th.textContent = key;
+    headRow.appendChild(th);
+  });
+  head.appendChild(headRow);
+  table.appendChild(head);
+  const body = document.createElement("tbody");
+  rows.slice(0, MAX_ROWS).forEach((row) => {
+    const tr = document.createElement("tr");
+    keys.forEach((key) => {
+      const td = document.createElement("td");
+      td.textContent = key in row ? compact(row[key]) : "—";
+      tr.appendChild(td);
+    });
+    body.appendChild(tr);
+  });
+  table.appendChild(body);
+  return table;
+}
+
+function renderValue(value, depth = 0) {
+  if (Array.isArray(value)) {
+    if (!value.length) return scalarNode("empty");
+    return value.every(isPlainObject) ? recordTable(value) : chipRow(value);
+  }
+  if (isPlainObject(value)) {
+    return depth > 2 ? scalarNode(JSON.stringify(value)) : fieldList(value, depth);
+  }
+  return scalarNode(value);
+}
+
+function rawDisclosure(value) {
+  const details = document.createElement("details");
+  details.className = "tl-raw";
+  const summary = document.createElement("summary");
+  summary.textContent = "internal · raw payload";
+  const pre = document.createElement("pre");
+  pre.className = "tl-text tl-json";
+  pre.textContent = prettyJson(value);
+  details.append(summary, pre);
+  return details;
+}
+
 function buildStep(type, content, extra = {}) {
   const step = document.createElement("div");
   step.className = `tl-step ${type}`;
@@ -206,16 +326,22 @@ function buildStep(type, content, extra = {}) {
     name.className = "tl-chip tool";
     name.textContent = extra.tool || "tool";
     body.appendChild(name);
-    const args = document.createElement("pre");
-    args.className = "tl-json";
-    args.textContent = prettyJson(extra.args ?? {});
-    body.appendChild(args);
+    const args = extra.args ?? {};
+    if (isPlainObject(args) && Object.keys(args).length) {
+      body.appendChild(fieldList(args, 0));
+      body.appendChild(rawDisclosure({ tool: extra.tool, args }));
+    }
   } else {
-    const isJson = type === "tool_result" && /^\s*[[{]/.test(String(content));
-    const pre = document.createElement("pre");
-    pre.className = `tl-text${isJson ? " tl-json" : ""}`;
-    pre.textContent = isJson ? prettyJson(content) : String(content);
-    body.appendChild(pre);
+    const parsed = type === "tool_result" ? parseJson(content) : { ok: false };
+    if (parsed.ok) {
+      body.appendChild(renderValue(parsed.value, 0));
+      body.appendChild(rawDisclosure(parsed.value));
+    } else {
+      const pre = document.createElement("pre");
+      pre.className = "tl-text";
+      pre.textContent = String(content);
+      body.appendChild(pre);
+    }
   }
 
   step.appendChild(body);
