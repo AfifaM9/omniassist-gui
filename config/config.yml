@@ -1,11 +1,12 @@
 app:
   name: "OmniAssist"
-  version: "v2026.8 \"French Macaron\""
+  version: "v2026.9 \"Galette\""
   description: "Operationalized Multi-Agent Networked Intelligence & Autonomous System Services Integration Toolkit"
 
 models:
-  primary: "gemini-3.6-flash-lite"
+  primary: "gemini-4-hydrogen"
   fallbacks:
+    - "gemini-3.6-flash-lite"
     - "gemini-3.5-flash-lite"
     - "gemini-3.1-flash-lite"
     - "gemini-3.5-flash"

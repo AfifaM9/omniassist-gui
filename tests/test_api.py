@@ -37,7 +37,7 @@ class TestApi(unittest.TestCase):
         self.assertEqual(data["status"], "ok")
         self.assertTrue(data["offline"])
         self.assertGreater(data["tools"], 0)
-        self.assertEqual(data["model"], "gemini-3.6-flash-lite")
+        self.assertEqual(data["model"], "gemini-4-hydrogen")
         self.assertIn(data["memory_backend"], ("hashing", "sentence-transformers"))
         self.assertGreaterEqual(data["memory_documents"], 0)
 
@@ -120,7 +120,7 @@ class TestApi(unittest.TestCase):
             self.assertEqual(self.client.get(asset).status_code, 200, asset)
 
     def test_health_reports_the_current_release(self):
-        self.assertEqual(self.client.get("/api/health").json()["version"], 'v2026.8 "French Macaron"')
+        self.assertEqual(self.client.get("/api/health").json()["version"], 'v2026.9 "Galette"')
 
     def test_ui_references_the_brand_favicon_and_run_strip(self):
         html = self.client.get("/").text

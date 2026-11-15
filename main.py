@@ -1,6 +1,6 @@
 """
 ==============================================================================
- OMNIASSIST GUI ENTRY POINT SCRIPT (v2026.8 "French Macaron")
+ OMNIASSIST GUI ENTRY POINT SCRIPT (v2026.9 "Galette")
 ==============================================================================
  The browser GUI is the default interface. The legacy in-repo terminal CLI is
  DEPRECATED — the standalone OmniAssist project already provides the CLI
@@ -17,14 +17,16 @@
    6-digit box until a valid code is entered, even if no secret is configured.
 
  MODEL PRIORITY & FALLBACK HIERARCHY:
-   Primary Model:  Gemini 3.6 Flash-Lite
-   Fallback 1:     Gemini 3.5 Flash-Lite
-   Fallback 2:     Gemini 3.1 Flash-Lite
-   Fallback 3:     Gemini 3.5 Flash
-   Fallback 4:     Gemini 3 Flash
-   Fallback 5:     Gemini 2.5 Flash
-   Fallback 6:     Gemini 3.8 Flash
-   Fallback 7:     Gemma 4
+   Primary Model:  Gemini 4 Hydrogen
+   Fallback 1:     Gemini 3.6 Flash-Lite
+   Fallback 2:     Gemini 3.5 Flash-Lite
+   Fallback 3:     Gemini 3.1 Flash-Lite
+   Fallback 4:     Gemini 3.5 Flash
+   Fallback 5:     Gemini 3 Flash
+   Fallback 6:     Gemini 2.5 Flash
+   Fallback 7:     Gemini 3.8 Flash
+   Fallback 8:     Gemma 4 31B
+   Fallback 9:     Gemma 4 26B A4B
    Rule:           Automatically skip deprecated or decommissioned models.
                    Try the primary model first, then move down the fallback
                    chain until a model succeeds.

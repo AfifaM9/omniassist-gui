@@ -8,9 +8,9 @@
 ![Lint](https://github.com/AfifaM9/omniassist-gui/actions/workflows/lint.yml/badge.svg)
 ![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Version](https://img.shields.io/badge/version-2026.8_French_Macaron-blue)
+![Version](https://img.shields.io/badge/version-2026.9_Galette-blue)
 
-Operationalized Multi-Agent Networked Intelligence & Autonomous System Services Integration Toolkit Graphical User Interface (v2026.8 "French Macaron"). Its sister agent is **OmniAssist**, whose CLI is exposed through `interfaces/cli.py`.
+Operationalized Multi-Agent Networked Intelligence & Autonomous System Services Integration Toolkit Graphical User Interface (v2026.9 "Galette"). Its sister agent is **OmniAssist**, whose CLI is exposed through `interfaces/cli.py`.
 
 ---
 
@@ -191,8 +191,9 @@ omniassist
 
    ```yaml
    models:
-     primary: "gemini-3.6-flash-lite"
+     primary: "gemini-4-hydrogen"
      fallbacks:
+       - "gemini-3.6-flash-lite"
        - "gemini-3.5-flash-lite"
        - "gemini-3.1-flash-lite"
        - "gemini-3.5-flash"

@@ -25,7 +25,7 @@ try:
 except ImportError:  # pragma: no cover - dotenv is optional at runtime
     pass
 
-DEFAULT_MODEL = "gemini-3.6-flash-lite"
+DEFAULT_MODEL = "gemini-4-hydrogen"
 DEFAULT_MEMORY_DIR = "./data"
 MAX_MEMORY_SNIPPETS = 3
 

@@ -7,8 +7,16 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 
 ## [Unreleased]
 
+## [v2026.9-galette] - 2026-11-15
+
+*Release "v2026.9 \"Galette\"".*
+
+### Added
+- **Gemini 4 Hydrogen is now the primary model** (`gemini-4-hydrogen`), released November 2026 and built for rapid execution across coding and agentic workflows. The previous primary, `gemini-3.6-flash-lite`, moves to the head of the fallback chain, so the full order is `gemini-4-hydrogen` -> `gemini-3.6-flash-lite` -> `gemini-3.5-flash-lite` -> `gemini-3.1-flash-lite` -> `gemini-3.5-flash` -> `gemini-3-flash-preview` -> `gemini-2.5-flash` -> `gemini-3.8-flash` -> `gemma-4-31b-it` -> `gemma-4-26b-a4b-it`.
+
 ### Changed
 - **Omni's Computer no longer shows raw JSON.** Tool calls render as a labelled field list (e.g. `command  ls -la`) and tool results render as readable values: key/value rows for objects, a table for arrays of records, and chips for arrays of scalars. Numbers are tinted with the accent. The underlying JSON is unchanged on the wire and remains available per card behind a collapsed **internal · raw payload** disclosure, so nothing is lost for debugging. Plain-text results render as-is with no disclosure.
+- Version bumped to **v2026.9 "Galette"** (changelog id `v2026.9-galette`) across `config/config.yml`, `main.py`, `interfaces/cli.py`, `interfaces/api/server.py`, `mcp_tools/search_tools.py` (User-Agent), `interfaces/web/index.html` (sidebar fallback), and `README.md`.
 
 ## [v2026.8-french-macaron] - 2026-11-05
 
@@ -138,6 +146,7 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 - Documented that `mcp_tools/shell_tool.py` is a denylist and not a sandbox. It is bypassable via path traversal (`rm -rf /opt/../etc`), trailing slashes, unexpanded variables (`$HOME`), long flags (`--recursive --force`), command chaining, and `find / -delete`. The README and Security section now state this plainly rather than describing the tooling as sandboxed.
 - Added optional token auth to the web API, which exposes shell-executing tools over HTTP for the first time.
 
+[v2026.9-galette]: https://github.com/AfifaM9/omniassist-gui/tree/v2026.9-galette
 [v2026.8-french-macaron]: https://github.com/AfifaM9/omniassist-gui/tree/v2026.8-french-macaron
 [v2026.7-eton-mess]: https://github.com/AfifaM9/omniassist-gui/tree/v2026.7-eton-mess
 [v2026.6-dirt-cake]: https://github.com/AfifaM9/omniassist-gui/tree/v2026.6-dirt-cake
